@@ -11,6 +11,8 @@ calc_input_len:
     mov r2, #0 // Initialize the counter to zero
 
     ldrb  r3, [r0], #1 // Load the first byte, increment r0 by 1
+    
+    b loop1_start
 
 
 loop1_start:
@@ -23,19 +25,40 @@ loop1_start:
     b loop1_start // Repeat until 
 
 loop1_end:
-    str r2, [r1]
-    b _exit
+    str r2, [r1] // Update the value of "input_length"
+    b check_palindrom
 
 check_palindrom:
-	// Here you could check whether input is a palindrom or not
-	
+    ldr r0, =input           // Load the address of the input string
+    ldr r1, =input_length    // Load the address of input_length
+    ldr r1, [r1]             // Load the value of input_length
+
+    sub r1, r1, #1           // Decrement r1 to point to the last character
+
+compare_loop:
+    ldrb r2, [r0]            // Load the left character
+    ldrb r3, [r0, r1]        // Load the right character
+
+    // Check convert to lower case if neccessary
+
+    cmp r2, r3               // Compare characters
+    // Check for special character "?"
+    bne not_palindrome       // If they don't match, it's not a palindrome
+
+    add r0, r0, #1           // Move left pointer to the right
+    sub r1, r1, #1           // Move right pointer to the left
+
+    cmp r0, r1               // Check if pointers have crossed
+    bls compare_loop         // If not, continue comparing
 	
 is_palindrom:
 	// Switch on only the 5 rightmost LEDs
+    ldr r12, =0xFFFFFFFF
+
 	// Write 'Palindrom detected' to UART
 	
 	
-is_no_palindrom:
+not_palindrome:
 	// Switch on only the 5 leftmost LEDs
 	// Write 'Not a palindrom' to UART
 	
