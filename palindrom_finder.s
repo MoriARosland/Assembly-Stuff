@@ -18,7 +18,7 @@ calc_input_len:
     mov r2, #0               // Initialize the counter to zero
 
 count_chars:
-    ldrb r3, [r0], #1        // Load a byte and increment r0
+    ldrb r3, [r0], #1        // Load a byte from input and increment r0
     cmp r3, #0               // Check if the byte is the null terminator
     beq store_string_len     // If yes, branch to store_string_len
 
@@ -78,8 +78,19 @@ is_palindrom:
     mov r1, #0x1f           
     str r1, [r0]  // Switch on the 5 rightmost LEDs. Setting a bit high (0x1) corresponds to switching it on.
 
-    // Write 'Palindrome detected' to UART (implementation needed)
-    b _exit
+    ldr r2, =jtag_uart_addr
+    ldr r2, [r2]
+
+    ldr r3, =isPalin_string  // Load the address of the string
+
+print_palin:
+    ldrb r4, [r3], #1        // Load a byte from the string and increment the pointer
+    cmp r4, #0               // Check if the byte is the null terminator
+    beq _exit               
+
+    strb r4, [r2]            // Write the byte to UART
+
+    b print_palin             // Repeat the loop until the null terminator is encountered
 
 check_special_char:
     cmp r2, #63                 // 63 = "?" in ASCII
@@ -96,8 +107,20 @@ not_palindrome:
 
     movw r1, #0x3e0
     str r1, [r0]
-    // Write 'Not a palindrome' to UART (implementation needed)
-    b _exit
+
+    ldr r2, =jtag_uart_addr
+    ldr r2, [r2]
+
+    ldr r3, =isNotPalin_string  // Load the address of the string
+
+print_no_palin:
+    ldrb r4, [r3], #1        // Load a byte from the string and increment the pointer
+    cmp r4, #0               // Check if the byte is the null terminator
+    beq _exit               
+
+    strb r4, [r2]            // Write the byte to UART
+
+    b print_no_palin             // Repeat the loop until the null terminator is encountered
 	
 _exit:
     // Halt execution
@@ -110,4 +133,10 @@ _exit:
     input_length: .word 0    // Initialize to 0
 .align
     led_base_addr: .word 0xff200000
+.align
+    jtag_uart_addr: .word 0xff201000
+.align
+    isPalin_string: .asciz "Palindrome detected"
+.align
+    isNotPalin_string: .asciz "Not a palindrome"
 .end
