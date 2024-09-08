@@ -40,8 +40,14 @@ check_palindrom:
     b compare_loop
 
 compare_loop:
-    ldrb r2, [r0]            // Load the left character
-    ldrb r3, [r1]        // Load the right character
+    ldrb r2, [r0]            // Load the left char
+    ldrb r3, [r1]            // Load the right char
+
+    cmp r2, #32              // Check if the char is SPACE (left pointer)
+    beq left_ptr_clear_whitespace
+
+    cmp r3, #32              // Check if the char is SPACE (right pointer)
+    beq right_ptr_clear_whitespace
 
     cmp r2, #97              // Check if r2 is a lowercase letter
     bhs convert_r2_to_upper 
@@ -51,7 +57,7 @@ check_r3:
     bhs convert_r3_to_upper 
 
 compare_continue:
-    cmp r2, r3               // Compare characters
+    cmp r2, r3               // Compare chars
     bne check_special_char   // If they don't match, check for "?"
 
 increment_pointers:
@@ -70,7 +76,15 @@ convert_r2_to_upper:
 convert_r3_to_upper:
     sub r3, r3, #32          // Convert r3 to uppercase
     b compare_continue       // Continue with comparison
-	
+
+left_ptr_clear_whitespace:
+    add r0, r0, #1          // Skip the current byte
+    b compare_loop          // Restart compare loop
+
+right_ptr_clear_whitespace:
+    sub r1, r1, #1          // Skip the current byte
+    b compare_loop          // Restart compare loop
+
 is_palindrom:
     ldr r0, =led_base_addr
     ldr r0, [r0]
@@ -136,7 +150,7 @@ _exit:
 .align
     jtag_uart_addr: .word 0xff201000
 .align
-    isPalin_string: .asciz "Palindrome detected"
+    isPalin_string: .asciz "Palindrome detected \n"
 .align
-    isNotPalin_string: .asciz "Not a palindrome"
+    isNotPalin_string: .asciz "Not a palindrome \n"
 .end
