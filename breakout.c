@@ -46,6 +46,7 @@ GameState currentState = Stopped;
  */
 
 // TODO: Add a C declaration for the ClearScreen assembly procedure
+void ClearScreen();
 void SetPixel(unsigned int x_coord, unsigned int y_coord, unsigned int color);
 void DrawBlock(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned int color);
 void DrawBar(unsigned int y);
@@ -59,7 +60,19 @@ void WriteUart(char c);
 asm("ClearScreen: \n\t"
     "    PUSH {LR} \n\t"
     "    PUSH {R4, R5} \n\t"
-    // TODO: Add ClearScreen implementation in assembly here
+    // TODO: Add ClearScreen implementation in assembly here'
+
+    "    LDR R0, =VGAaddress \n\t"
+    "    LDR R1, =0xc803be7e \n\t" // todo: create variable last address
+    "    MOV R2, #0 \n\t"
+
+    // loop:
+    "    STR R2, [R0] \n\t"
+    "    ADD R0, R0, #4 \n\t"
+    "    CMP R0, R1 \n\t"
+    // 	bge _end
+    // 	b loop
+
     "    POP {R4,R5}\n\t"
     "    POP {LR} \n\t"
     "    BX LR");
