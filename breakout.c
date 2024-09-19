@@ -63,7 +63,7 @@ asm("ClearScreen: \n\t"
     // TODO: Add ClearScreen implementation in assembly here'
 
     "    LDR R0, =VGAaddress \n\t"
-    "    LDR R1, =0xc803be7e \n\t" // todo: create variable last address
+    "    LDR R1, =0xc803be7c \n\t" // todo: create variable last address
     "    MOV R2, #0 \n\t"
 
     // loop:
