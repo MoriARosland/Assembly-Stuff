@@ -24,6 +24,7 @@ char font8x8[128][8];        // DON'T TOUCH THIS - this is a forward declaration
 // Last aligned pixel address: BASE_ADDR + ( y_pos * STRIDE + x_pos * 2)
 // STRIDE = 1025 bytes on this system.
 unsigned long long __attribute__((used)) VGAlastPixelAddress = 0xc803be7c; // Last 4 byte aligned pixel address
+unsigned int __attribute__((used)) BarCenterOffset = 22; // Ease of use when centering the DrawBar
 
 /***
  * You might use and modify the struct/enum definitions below this comment
@@ -182,7 +183,7 @@ void play() {
         }
         draw_playing_field();
         draw_ball();
-        DrawBar(120); // TODO: replace the constant value with the current position of the bar
+        DrawBar(120 - BarCenterOffset); // TODO: replace the constant value with the current position of the bar
     }
     if (currentState == Won) {
         write(won);
