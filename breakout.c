@@ -24,7 +24,9 @@ char font8x8[128][8];        // DON'T TOUCH THIS - this is a forward declaration
 // Last aligned pixel address: BASE_ADDR + ( y_pos * STRIDE + x_pos * 2)
 // STRIDE = 1025 bytes on this system.
 unsigned long long __attribute__((used)) VGAlastPixelAddress = 0xc803be7c; // Last 4 byte aligned pixel address
+
 unsigned int __attribute__((used)) BarCenterOffset = 22; // Ease of use when centering the DrawBar
+unsigned int __attribute__((used)) BarHorizontalOffset = 20; // The distance from the left wall to where the bar is placed (in pixels)
 
 /***
  * You might use and modify the struct/enum definitions below this comment
@@ -107,7 +109,9 @@ asm("DrawBar: \n\t"
     "   PUSH {R4, R5, R6} \n\t"
 
     "   MOV R4, R0 \n\t" // move y-pos to R4
-    "   MOV R5, #20 \n\t" // set x-pos to 20
+    "   LDR R5, =BarHorizontalOffset \n\t"
+    "   LDR R5, [R5] \n\t"
+
     "   LDR R2, =white \n\t" // load color value for white into R2
     "   LDR R2, [R2] \n\t"
 
