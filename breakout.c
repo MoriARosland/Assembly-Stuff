@@ -21,6 +21,10 @@ char font8x8[128][8];        // DON'T TOUCH THIS - this is a forward declaration
  * TODO: Define your variables below this comment
  */
 
+// Last aligned pixel address: BASE_ADDR + ( y_pos * STRIDE + x_pos * 2)
+// STRIDE = 1025 bytes on this system.
+unsigned long long __attribute__((used)) VGAlastPixelAddress = 0xc803be7c; // Last 4 byte aligned pixel address
+
 /***
  * You might use and modify the struct/enum definitions below this comment
  */
@@ -60,18 +64,23 @@ void WriteUart(char c);
 asm("ClearScreen: \n\t"
     "    PUSH {LR} \n\t"
     "    PUSH {R4, R5} \n\t"
-    // TODO: Add ClearScreen implementation in assembly here'
 
-    "    LDR R0, =VGAaddress \n\t"
-    "    LDR R1, =0xc803be7c \n\t" // todo: create variable last address
-    "    MOV R2, #0 \n\t"
+    // Clear Screen
+    "    LDR R4, =VGAaddress \n\t" // Load the address of VGAaddress into R4
+    "    LDR R4, [R4] \n\t" // Load the value of VGAaddress into R4
 
-    // loop:
-    "    STR R2, [R0] \n\t"
-    "    ADD R0, R0, #4 \n\t"
-    "    CMP R0, R1 \n\t"
-    // 	bge _end
-    // 	b loop
+    "    LDR R5, =VGAlastPixelAddress \n\t" // Load the address of VGAlastPixelAddress into R5
+    "    LDR R5, [R5] \n\t" // Load the value of VGAlastPixelAddress into R5
+    
+    "    LDR R6, =black \n\t"
+    "    LDR R6, [R6] \n\t" // Load the color value for black into R6
+
+    "    loop: \n\t"
+    "    STR R6, [R4] \n\t" // Store the color value for black at the pixel address in R4
+    "    ADD R4, R4, #4 \n\t" // Increment the pixel address by 4 bytes
+
+    "    CMP R4, R5 \n\t" // Compare the pixel address with the last pixel address
+    "    BLT loop \n\t" // Loop if the pixel address is less than the last pixel address
 
     "    POP {R4,R5}\n\t"
     "    POP {LR} \n\t"
