@@ -49,7 +49,6 @@ GameState currentState = Stopped;
  * Here follow the C declarations for our assembly functions
  */
 
-// TODO: Add a C declaration for the ClearScreen assembly procedure
 void ClearScreen();
 void SetPixel(unsigned int x_coord, unsigned int y_coord, unsigned int color);
 void DrawBlock(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned int color);
@@ -63,7 +62,7 @@ void WriteUart(char c);
 
 asm("ClearScreen: \n\t"
     "    PUSH {LR} \n\t"
-    "    PUSH {R4, R5} \n\t"
+    "    PUSH {R4, R5, R6} \n\t"
 
     // Clear Screen
     "    LDR R4, =VGAaddress \n\t" // Load the address of VGAaddress into R4
@@ -82,7 +81,7 @@ asm("ClearScreen: \n\t"
     "    CMP R4, R5 \n\t" // Compare the pixel address with the last pixel address
     "    BLT loop \n\t" // Loop if the pixel address is less than the last pixel address
 
-    "    POP {R4,R5}\n\t"
+    "    POP {R4, R5, R6}\n\t"
     "    POP {LR} \n\t"
     "    BX LR");
 
