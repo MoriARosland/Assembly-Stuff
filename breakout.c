@@ -81,7 +81,7 @@ asm("ClearScreen: \n\t"
     "    CMP R4, R5 \n\t" // Compare the pixel address with the last pixel address
     "    BLT loop \n\t" // Loop if the pixel address is less than the last pixel address
 
-    "    POP {R4, R5, R6}\n\t"
+    "    POP {R4, R5, R6} \n\t"
     "    POP {LR} \n\t"
     "    BX LR");
 
@@ -102,7 +102,36 @@ asm("DrawBlock: \n\t"
 
 // TODO: Impelement the DrawBar function in assembly. You need to accept the parameter as outlined in the c declaration above (unsigned int y)
 asm("DrawBar: \n\t"
-    "BX LR");
+    "   PUSH {LR} \n\t"
+    "   PUSH {R4, R5, R6} \n\t"
+
+    "   MOV R4, R0 \n\t" // move y-pos to R4
+    "   MOV R5, #20 \n\t" // set x-pos to 20
+    "   LDR R2, =white \n\t" // load color value for white into R2
+    "   LDR R2, [R2] \n\t"
+
+    "   ADD R6, R4, #45 \n\t" // y-pos maximum
+
+    "   DrawBarRow: \n\t"
+    "   MOV R0, R5 \n\t" // set x-pos argument for SetPixel
+    "   MOV R1, R4 \n\t" // set y-pos argument for SetPixel
+
+    "   BL SetPixel \n\t"
+
+    "   ADD R5, R5, #1 \n\t" // move to next pixel
+    "   CMP R5, #27 \n\t"
+
+    "   BLT DrawBarRow \n\t"
+
+    "   MOV R5, #20 \n\t"
+    "   ADD R4, R4, #1 \n\t" // move to next row
+    "   CMP R4, R6 \n\t" // If current y-pos (R4) < y-pos-maximum (R6), loop. Else exit the function
+
+    "   BLT DrawBarRow \n\t"
+
+    "   POP {R4, R5, R6} \n\t"
+    "   POP {LR} \n\t"
+    "   BX LR");
 
 asm("ReadUart:\n\t"
     "LDR R1, =0xFF201000 \n\t"
@@ -189,6 +218,10 @@ int main(int argc, char *argv[]) {
 
     // HINT: This loop allows the user to restart the game after loosing/winning the previous game
     while (1) {
+
+        // DEBUG:
+        currentState = Running;
+
         wait_for_start();
         play();
         reset();
