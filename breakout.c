@@ -168,7 +168,35 @@ void draw_ball() {
 }
 
 void draw_playing_field() {
-  DrawBlock(100, 100, 15, 15, 0x000000FF); // drawing test
+  unsigned int x_pos = 155;
+  unsigned int y_pos = 0;
+
+  const unsigned int x_max = 320;
+  const unsigned int y_max = 240;
+
+  const unsigned int block_width = 15;
+  const unsigned int block_height = 15;
+
+  for (unsigned int y = y_pos; y < y_max; y += block_height) {
+    for (unsigned int x = x_pos; x < x_max; x += block_width) {
+      unsigned int color;
+
+      // Paint the board in a chequered pattern, alternating between 3 colors.
+      switch ((x / block_width + y / block_height) % 3) {
+      case 0:
+        color = red;
+        break;
+      case 1:
+        color = green;
+        break;
+      case 2:
+        color = blue;
+        break;
+      }
+
+      DrawBlock(x, y, block_width, block_height, color);
+    }
+  }
 }
 
 void update_game_state() {
