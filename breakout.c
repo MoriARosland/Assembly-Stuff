@@ -21,12 +21,9 @@ char font8x8[128][8];        // DON'T TOUCH THIS - this is a forward declaration
  * TODO: Define your variables below this comment
  */
 
-// Last aligned pixel address: BASE_ADDR + ( y_pos * STRIDE + x_pos * 2)
-// STRIDE = 1025 bytes on this system.
+// Last aligned pixel address: BASE_ADDR + ( y_pos * STRIDE + x_pos * 2) // STRIDE = 1025 bytes on this system.
 unsigned long long __attribute__((used)) VGAlastPixelAddress = 0xc803be7c; // Last 4 byte aligned pixel address
-
 unsigned int __attribute__((used)) BarCenterOffset = 22; // Ease of use when centering the DrawBar
-unsigned int __attribute__((used)) BarHorizontalOffset = 20; // The distance from the left wall to where the bar is placed (in pixels)
 
 /***
  * You might use and modify the struct/enum definitions below this comment
@@ -109,8 +106,7 @@ asm("DrawBar: \n\t"
     "   PUSH {R4, R5, R6} \n\t"
 
     "   MOV R4, R0 \n\t" // move y-pos to R4
-    "   LDR R5, =BarHorizontalOffset \n\t"
-    "   LDR R5, [R5] \n\t"
+    "   MOV R5, #2 \n\t" // x-offset for the bar
 
     "   LDR R2, =white \n\t" // load color value for white into R2
     "   LDR R2, [R2] \n\t"
@@ -120,18 +116,15 @@ asm("DrawBar: \n\t"
     "   DrawBarRow: \n\t"
     "   MOV R0, R5 \n\t" // set x-pos argument for SetPixel
     "   MOV R1, R4 \n\t" // set y-pos argument for SetPixel
-
     "   BL SetPixel \n\t"
 
     "   ADD R5, R5, #1 \n\t" // move to next pixel
-    "   CMP R5, #27 \n\t"
-
+    "   CMP R5, #9 \n\t"
     "   BLT DrawBarRow \n\t"
 
-    "   MOV R5, #20 \n\t"
+    "   MOV R5, #2 \n\t"
     "   ADD R4, R4, #1 \n\t" // move to next row
     "   CMP R4, R6 \n\t" // If current y-pos (R4) < y-pos-maximum (R6), loop. Else exit the function
-
     "   BLT DrawBarRow \n\t"
 
     "   POP {R4, R5, R6} \n\t"
