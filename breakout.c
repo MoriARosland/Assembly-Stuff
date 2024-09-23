@@ -23,7 +23,9 @@ char font8x8[128][8];        // DON'T TOUCH THIS - this is a forward declaration
 
 // Last aligned pixel address: BASE_ADDR + ( y_pos * STRIDE + x_pos * 2) // STRIDE = 1025 bytes on this system.
 unsigned long long __attribute__((used)) VGAlastPixelAddress = 0xc803be7c; // Last 4 byte aligned pixel address
-unsigned int __attribute__((used)) BarCenterOffset = 22;                   // Ease of use when centering the DrawBar
+
+const unsigned short BarCenterOffset = 22; // Ease of use when centering the DrawBar
+const unsigned short BlockSize = 15;       // Size of a squared block in px
 
 /***
  * You might use and modify the struct/enum definitions below this comment
@@ -168,21 +170,15 @@ void draw_ball() {
 }
 
 void draw_playing_field() {
-  unsigned int x_pos = 155;
+  unsigned int x_pos = width - n_cols * BlockSize; // Horizontal starting position of playing field
   unsigned int y_pos = 0;
 
-  const unsigned int x_max = 320;
-  const unsigned int y_max = 240;
-
-  const unsigned int block_width = 15;
-  const unsigned int block_height = 15;
-
-  for (unsigned int y = y_pos; y < y_max; y += block_height) {
-    for (unsigned int x = x_pos; x < x_max; x += block_width) {
-      unsigned int color;
+  for (unsigned int y = y_pos; y < height; y += BlockSize) {
+    for (unsigned int x = x_pos; x < width; x += BlockSize) {
+      unsigned int color = blue;
 
       // Paint the board in a chequered pattern, alternating between 3 colors.
-      switch ((x / block_width + y / block_height) % 3) {
+      switch ((x / BlockSize + y / BlockSize) % 3) {
       case 0:
         color = red;
         break;
@@ -194,7 +190,7 @@ void draw_playing_field() {
         break;
       }
 
-      DrawBlock(x, y, block_width, block_height, color);
+      DrawBlock(x, y, BlockSize, BlockSize, color);
     }
   }
 }
