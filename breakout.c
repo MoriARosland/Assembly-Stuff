@@ -23,25 +23,25 @@ char font8x8[128][8];        // DON'T TOUCH THIS - this is a forward declaration
 
 // Last aligned pixel address: BASE_ADDR + ( y_pos * STRIDE + x_pos * 2) // STRIDE = 1025 bytes on this system.
 unsigned long long __attribute__((used)) VGAlastPixelAddress = 0xc803be7c; // Last 4 byte aligned pixel address
-unsigned int __attribute__((used)) BarCenterOffset = 22; // Ease of use when centering the DrawBar
+unsigned int __attribute__((used)) BarCenterOffset = 22;                   // Ease of use when centering the DrawBar
 
 /***
  * You might use and modify the struct/enum definitions below this comment
  */
 typedef struct _block {
-    unsigned char destroyed;
-    unsigned char deleted;
-    unsigned int pos_x;
-    unsigned int pos_y;
-    unsigned int color;
+  unsigned char destroyed;
+  unsigned char deleted;
+  unsigned int pos_x;
+  unsigned int pos_y;
+  unsigned int color;
 } Block;
 
 typedef enum _gameState {
-    Stopped = 0,
-    Running = 1,
-    Won = 2,
-    Lost = 3,
-    Exit = 4,
+  Stopped = 0,
+  Running = 1,
+  Won = 2,
+  Lost = 3,
+  Exit = 4,
 } GameState;
 GameState currentState = Stopped;
 
@@ -66,20 +66,20 @@ asm("ClearScreen: \n\t"
 
     // Clear Screen
     "    LDR R4, =VGAaddress \n\t" // Load the address of VGAaddress into R4
-    "    LDR R4, [R4] \n\t" // Load the value of VGAaddress into R4
+    "    LDR R4, [R4] \n\t"        // Load the value of VGAaddress into R4
 
     "    LDR R5, =VGAlastPixelAddress \n\t" // Load the address of VGAlastPixelAddress into R5
-    "    LDR R5, [R5] \n\t" // Load the value of VGAlastPixelAddress into R5
-    
+    "    LDR R5, [R5] \n\t"                 // Load the value of VGAlastPixelAddress into R5
+
     "    LDR R6, =black \n\t"
     "    LDR R6, [R6] \n\t" // Load the color value for black into R6
 
     "    loop: \n\t"
-    "    STR R6, [R4] \n\t" // Store the color value for black at the pixel address in R4
+    "    STR R6, [R4] \n\t"   // Store the color value for black at the pixel address in R4
     "    ADD R4, R4, #4 \n\t" // Increment the pixel address by 4 bytes
 
     "    CMP R4, R5 \n\t" // Compare the pixel address with the last pixel address
-    "    BLT loop \n\t" // Loop if the pixel address is less than the last pixel address
+    "    BLT loop \n\t"   // Loop if the pixel address is less than the last pixel address
 
     "    POP {R4, R5, R6} \n\t"
     "    POP {LR} \n\t"
@@ -95,41 +95,66 @@ asm("SetPixel: \n\t"
     "STRH R2, [R3,R1] \n\t"
     "BX LR");
 
-// TODO: Implement the DrawBlock function in assembly. You need to accept 5 parameters, as outlined in the c declaration above (unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned int color)
+// R0 = x, R1 = y, R2 = width, R3 = height, STACK -> color
 asm("DrawBlock: \n\t"
-    // TODO: Here goes your implementation
+    "PUSH {R4-R9, LR} \n\t"
+    "LDR R9, [SP, #28] \n\t" // Get the color from the stack
+
+    "MOV R4, R0 \n\t"     // R4 = x-pointer
+    "MOV R5, R1 \n\t"     // R5 = y-pointer
+    "ADD R6, R0, R2 \n\t" // R6 = x-pos max
+    "ADD R7, R1, R3 \n\t" // R7 = y-pos max
+
+    "MOV R8, R0 \n\t" // Save x-pos in R8 since R4 and R0 will be modified
+    "MOV R2, R9 \n\t" // Move the color value to R2
+
+    "DrawBlockLoop: \n\t"
+    "MOV R0, R4 \n\t" // Set x-pos
+    "MOV R1, R5 \n\t" // Set y-pos
+    // We dont need to set the color since it is already set
+    "BL SetPixel \n\t"
+
+    "ADD R4, R4, #1 \n\t" // Increment x-pos
+    "CMP R4, R6 \n\t"     // Compare next x-pos with x-pos max
+    "BLT DrawBlockLoop \n\t"
+
+    "MOV R4, R8 \n\t"     // Reset the x-position for the next row iteration
+    "ADD R5, R5, #1 \n\t" // Increment to the next row
+    "CMP R5, R7 \n\t"     // Compare next y-pos with y-pos max
+    "BLT DrawBlockLoop \n\t"
+
+    "POP {R4-R9, LR} \n\t"
     "BX LR");
 
-// TODO: Impelement the DrawBar function in assembly. You need to accept the parameter as outlined in the c declaration above (unsigned int y)
 asm("DrawBar: \n\t"
-    "   PUSH {LR} \n\t"
-    "   PUSH {R4, R5, R6} \n\t"
+    "PUSH {LR} \n\t"
+    "PUSH {R4, R5, R6} \n\t"
 
-    "   MOV R4, R0 \n\t" // move y-pos to R4
-    "   MOV R5, #2 \n\t" // x-offset for the bar
+    "MOV R4, R0 \n\t" // move y-pos to R4
+    "MOV R5, #2 \n\t" // x-offset for the bar
 
-    "   LDR R2, =white \n\t" // load color value for white into R2
-    "   LDR R2, [R2] \n\t"
+    "LDR R2, =white \n\t" // load color value for white into R2
+    "LDR R2, [R2] \n\t"
 
-    "   ADD R6, R4, #45 \n\t" // y-pos maximum
+    "ADD R6, R4, #45 \n\t" // y-pos maximum
 
-    "   DrawBarRow: \n\t"
-    "   MOV R0, R5 \n\t" // set x-pos argument for SetPixel
-    "   MOV R1, R4 \n\t" // set y-pos argument for SetPixel
-    "   BL SetPixel \n\t"
+    "DrawBarRow: \n\t"
+    "MOV R0, R5 \n\t" // set x-pos argument for SetPixel
+    "MOV R1, R4 \n\t" // set y-pos argument for SetPixel
+    "BL SetPixel \n\t"
 
-    "   ADD R5, R5, #1 \n\t" // move to next pixel
-    "   CMP R5, #9 \n\t"
-    "   BLT DrawBarRow \n\t"
+    "ADD R5, R5, #1 \n\t" // move to next pixel
+    "CMP R5, #9 \n\t"
+    "BLT DrawBarRow \n\t"
 
-    "   MOV R5, #2 \n\t"
-    "   ADD R4, R4, #1 \n\t" // move to next row
-    "   CMP R4, R6 \n\t" // If current y-pos (R4) < y-pos-maximum (R6), loop. Else exit the function
-    "   BLT DrawBarRow \n\t"
+    "MOV R5, #2 \n\t"
+    "ADD R4, R4, #1 \n\t" // move to next row
+    "CMP R4, R6 \n\t"     // If current y-pos (R4) < y-pos-maximum (R6), loop. Else exit the function
+    "BLT DrawBarRow \n\t"
 
-    "   POP {R4, R5, R6} \n\t"
-    "   POP {LR} \n\t"
-    "   BX LR");
+    "POP {R4, R5, R6} \n\t"
+    "POP {LR} \n\t"
+    "BX LR");
 
 asm("ReadUart:\n\t"
     "LDR R1, =0xFF201000 \n\t"
@@ -143,91 +168,92 @@ void draw_ball() {
 }
 
 void draw_playing_field() {
+  DrawBlock(100, 100, 15, 15, 0x000000FF); // drawing test
 }
 
 void update_game_state() {
-    if (currentState != Running) {
-        return;
-    }
+  if (currentState != Running) {
+    return;
+  }
 
-    // TODO: Check: game won? game lost?
+  // TODO: Check: game won? game lost?
 
-    // TODO: Update balls position and direction
+  // TODO: Update balls position and direction
 
-    // TODO: Hit Check with Blocks
-    // HINT: try to only do this check when we potentially have a hit, as it is relatively expensive and can slow down game play a lot
+  // TODO: Hit Check with Blocks
+  // HINT: try to only do this check when we potentially have a hit, as it is relatively expensive and can slow down game play a lot
 }
 
 void update_bar_state() {
-    int remaining = 0;
-    // TODO: Read all chars in the UART Buffer and apply the respective bar position updates
-    // HINT: w == 77, s == 73
-    // HINT Format: 0x00 'Remaining Chars':2 'Ready 0x80':2 'Char 0xXX':2, sample: 0x00018077 (1 remaining character, buffer is ready, current character is 'w')
+  int remaining = 0;
+  // TODO: Read all chars in the UART Buffer and apply the respective bar position updates
+  // HINT: w == 77, s == 73
+  // HINT Format: 0x00 'Remaining Chars':2 'Ready 0x80':2 'Char 0xXX':2, sample: 0x00018077 (1 remaining character, buffer is ready, current character is 'w')
 }
 
 void write(char *str) {
-    // TODO: Use WriteUart to write the string to JTAG UART
+  // TODO: Use WriteUart to write the string to JTAG UART
 }
 
 void play() {
-    ClearScreen();
-    // HINT: This is the main game loop
-    while (1) {
-        update_game_state();
-        update_bar_state();
-        if (currentState != Running) {
-            break;
-        }
-        draw_playing_field();
-        draw_ball();
-        DrawBar(120 - BarCenterOffset); // TODO: replace the constant value with the current position of the bar
+  ClearScreen();
+  // HINT: This is the main game loop
+  while (1) {
+    update_game_state();
+    update_bar_state();
+    if (currentState != Running) {
+      break;
     }
-    if (currentState == Won) {
-        write(won);
-    } else if (currentState == Lost) {
-        write(lost);
-    } else if (currentState == Exit) {
-        return;
-    }
-    currentState = Stopped;
+    draw_playing_field();
+    draw_ball();
+    DrawBar(120 - BarCenterOffset); // TODO: replace the constant value with the current position of the bar
+  }
+  if (currentState == Won) {
+    write(won);
+  } else if (currentState == Lost) {
+    write(lost);
+  } else if (currentState == Exit) {
+    return;
+  }
+  currentState = Stopped;
 }
 
 void reset() {
-    // Hint: This is draining the UART buffer
-    int remaining = 0;
-    do {
-        unsigned long long out = ReadUart();
-        if (!(out & 0x8000)) {
-            // not valid - abort reading
-            return;
-        }
-        remaining = (out & 0xFF0000) >> 4;
-    } while (remaining > 0);
+  // Hint: This is draining the UART buffer
+  int remaining = 0;
+  do {
+    unsigned long long out = ReadUart();
+    if (!(out & 0x8000)) {
+      // not valid - abort reading
+      return;
+    }
+    remaining = (out & 0xFF0000) >> 4;
+  } while (remaining > 0);
 
-    // TODO: You might want to reset other state in here
+  // TODO: You might want to reset other state in here
 }
 
 void wait_for_start() {
-    // TODO: Implement waiting behaviour until the user presses either w/s
+  // TODO: Implement waiting behaviour until the user presses either w/s
 }
 
 int main(int argc, char *argv[]) {
-    ClearScreen();
+  ClearScreen();
 
-    // HINT: This loop allows the user to restart the game after loosing/winning the previous game
-    while (1) {
+  // HINT: This loop allows the user to restart the game after loosing/winning the previous game
+  while (1) {
 
-        // DEBUG:
-        currentState = Running;
+    // DEBUG:
+    currentState = Running;
 
-        wait_for_start();
-        play();
-        reset();
-        if (currentState == Exit) {
-            break;
-        }
+    wait_for_start();
+    play();
+    reset();
+    if (currentState == Exit) {
+      break;
     }
-    return 0;
+  }
+  return 0;
 }
 
 // THIS IS FOR THE OPTIONAL TASKS ONLY
