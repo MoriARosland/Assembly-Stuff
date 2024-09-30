@@ -21,9 +21,6 @@ char font8x8[128][8];        // DON'T TOUCH THIS - this is a forward declaration
  * TODO: Define your variables below this comment
  */
 
-// Last aligned pixel address: BASE_ADDR + ( y_pos * STRIDE + x_pos * 2) // STRIDE = 1025 bytes on this system.
-unsigned long long __attribute__((used)) VGAlastPixelAddress = 0xc803be7c; // Last 4 byte aligned pixel address
-
 const unsigned short BarCenterOffset = 22; // Ease of use when centering the DrawBar
 const unsigned short BlockSize = 15;       // Size of a square block in px
 const unsigned short BallSize = 7;         // Size of a square ball in px
