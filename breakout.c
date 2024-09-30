@@ -25,7 +25,8 @@ char font8x8[128][8];        // DON'T TOUCH THIS - this is a forward declaration
 unsigned long long __attribute__((used)) VGAlastPixelAddress = 0xc803be7c; // Last 4 byte aligned pixel address
 
 const unsigned short BarCenterOffset = 22; // Ease of use when centering the DrawBar
-const unsigned short BlockSize = 15;       // Size of a squared block in px
+const unsigned short BlockSize = 15;       // Size of a square block in px
+const unsigned short BallSize = 7;         // Size of a square ball in px
 
 /***
  * You might use and modify the struct/enum definitions below this comment
@@ -173,8 +174,12 @@ asm("ReadUart:\n\t"
 
 // TODO: Add the WriteUart assembly procedure here that respects the WriteUart C declaration on line 46
 
-// TODO: Implement the C functions below
-void draw_ball() {
+void draw_ball(unsigned int x_coord, unsigned int y_coord) {
+  for (unsigned int i = 0; i < BallSize; i++) {
+    for (unsigned int j = 0; j < BallSize; j++) {
+      SetPixel(x_coord + i, y_coord + j, black);
+    }
+  }
 }
 
 void draw_playing_field() {
@@ -237,7 +242,7 @@ void play() {
       break;
     }
     draw_playing_field();
-    draw_ball();
+    draw_ball(8, 120 - 3);
     DrawBar(120 - BarCenterOffset); // TODO: replace the constant value with the current position of the bar
   }
   if (currentState == Won) {
