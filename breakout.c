@@ -22,13 +22,9 @@ char font8x8[128][8];              // DON'T TOUCH THIS - this is a forward decla
 /***
  * TODO: Define your variables below this comment
  */
-typedef struct _block {
-  unsigned char destroyed;
-  unsigned char deleted;
-  unsigned int pos_x;
-  unsigned int pos_y;
-  unsigned int color;
-} Block;
+
+#define HorizontalVelocity 2
+#define DiagonalVelocity 2
 
 typedef enum _gameState {
   Stopped = 0,
@@ -37,6 +33,33 @@ typedef enum _gameState {
   Lost = 3,
   Exit = 4,
 } GameState;
+
+typedef enum _direction {
+  HorizontalRight = 0,
+  HorizontalLeft = 1,
+  DiagonalUpRight = 2,
+  DiagonalDownRight = 3,
+  DiagonalUpLeft = 4,
+  DiagonalDownLeft = 5,
+} Direction;
+
+typedef struct _block {
+  unsigned char destroyed;
+  unsigned char deleted;
+  unsigned int pos_x;
+  unsigned int pos_y;
+  unsigned int color;
+} Block;
+
+/// @brief Struct to track the ball position
+typedef struct _ball {
+  unsigned int x_pos;
+  unsigned int y_pos;
+  unsigned int x_pos_prev;
+  unsigned int y_pos_prev;
+  Direction direction;
+} Ball;
+
 GameState currentState = Stopped;
 
 const unsigned short BarCenterOffset = 22; // Ease of use when centering the DrawBar
@@ -44,7 +67,9 @@ const unsigned short BlockSize = 15;       // Size of a square block in px
 const unsigned short BallSize = 7;         // Size of a square ball in px
 
 unsigned int num_blocks;
-Block *block_map;
+
+volatile Block *block_map;
+volatile Ball ball = {8, 117, 8, 117, HorizontalRight}; // Initial position of ball (x = gamebar.x + 1, y = height / 2 - ballheight / 2 )
 
 /***
  * Here follow the C declarations for our assembly functions
@@ -172,11 +197,58 @@ asm("ReadUart:\n\t"
 
 // TODO: Add the WriteUart assembly procedure here that respects the WriteUart C declaration on line 46
 
-void draw_ball(unsigned int x_coord, unsigned int y_coord) {
+void draw_ball() {
+
+  // Reset the pixels of the previous position
   for (unsigned int i = 0; i < BallSize; i++) {
     for (unsigned int j = 0; j < BallSize; j++) {
-      SetPixel(x_coord + i, y_coord + j, black);
+      SetPixel(ball.x_pos_prev + i, ball.y_pos_prev + j, white);
     }
+  }
+
+  // Draw the pixels of the current position
+  for (unsigned int i = 0; i < BallSize; i++) {
+    for (unsigned int j = 0; j < BallSize; j++) {
+      SetPixel(ball.x_pos + i, ball.y_pos + j, black);
+    }
+  }
+}
+
+void update_ball_position() {
+  ball.x_pos_prev = ball.x_pos;
+  ball.y_pos_prev = ball.y_pos;
+
+  switch (ball.direction) {
+  case HorizontalRight:
+    ball.x_pos += HorizontalVelocity;
+    break;
+
+  case HorizontalLeft:
+    ball.x_pos -= HorizontalLeft;
+    break;
+
+  case DiagonalUpRight:
+    ball.x_pos += DiagonalVelocity;
+    ball.y_pos -= DiagonalVelocity;
+    break;
+
+  case DiagonalDownRight:
+    ball.x_pos += DiagonalVelocity;
+    ball.y_pos += DiagonalVelocity;
+    break;
+
+  case DiagonalUpLeft:
+    ball.x_pos -= DiagonalVelocity;
+    ball.y_pos -= DiagonalVelocity;
+    break;
+
+  case DiagonalDownLeft:
+    ball.x_pos -= DiagonalVelocity;
+    ball.y_pos += DiagonalVelocity;
+    break;
+
+  default:
+    break;
   }
 }
 
@@ -186,14 +258,48 @@ void draw_playing_field() {
   }
 }
 
+void check_block_hit() {
+  for (unsigned int i = 0; i < num_blocks; i++) {
+    if (block_map[i].destroyed == 1) {
+      continue;
+    } else {
+      if (ball.x_pos + 7 >= block_map[i].pos_x + 7 && ball.x_pos + 7 <= block_map[i].pos_x + 15 && ball.y_pos + 7 >= block_map[i].pos_y && ball.y_pos + 7 <= block_map[i].pos_y + 15) {
+        block_map[i].destroyed = 1;
+        block_map[i].color = white;
+
+        ball.direction = HorizontalLeft;
+
+        return;
+      }
+    }
+  }
+}
+
+void check_bar_hit() {
+}
+
 void update_game_state() {
   if (currentState != Running) {
     return;
   }
 
-  // TODO: Check: game won? game lost?
+  // if (ball.x_pos > 320) {
+  //   currentState = Won;
+  //   return;
+  // }
 
-  // TODO: Update balls position and direction
+  // if (ball.x_pos == 0) {
+  //   currentState = Lost;
+  //   return;
+  // }
+
+  update_ball_position();
+
+  if (ball.x_pos >= 164) { // x = 164 earliset possible hit
+    check_block_hit();
+  } else if (ball.x_pos <= 8) {
+    check_bar_hit();
+  }
 
   // TODO: Hit Check with Blocks
   // HINT: try to only do this check when we potentially have a hit, as it is relatively expensive and can slow down game play a lot
@@ -220,7 +326,7 @@ void play() {
       break;
     }
     draw_playing_field();
-    draw_ball(8, 120 - 3);
+    draw_ball();
     DrawBar(120 - BarCenterOffset); // TODO: replace the constant value with the current position of the bar
   }
   if (currentState == Won) {
