@@ -141,7 +141,7 @@ asm("DrawBar: \n\t"
     "PUSH {R4, R5, R6} \n\t"
 
     "MOV R4, R0 \n\t" // move y-pos to R4
-    "MOV R5, #2 \n\t" // x-offset for the bar
+    "MOV R5, #0 \n\t" // x-offset for the bar
 
     "LDR R2, =black \n\t" // load color value for white into R2
     "LDR R2, [R2] \n\t"
@@ -157,7 +157,7 @@ asm("DrawBar: \n\t"
     "CMP R5, #9 \n\t"
     "BLT DrawBarRow \n\t"
 
-    "MOV R5, #2 \n\t"
+    "MOV R5, #0 \n\t"
     "ADD R4, R4, #1 \n\t" // move to next row
     "CMP R4, R6 \n\t"     // If current y-pos (R4) < y-pos-maximum (R6), loop. Else exit the function
     "BLT DrawBarRow \n\t"
