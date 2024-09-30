@@ -63,29 +63,37 @@ void WriteUart(char c);
  */
 
 asm("ClearScreen: \n\t"
-    "    PUSH {LR} \n\t"
-    "    PUSH {R4, R5, R6} \n\t"
+    "PUSH {R4-R7, LR} \n\t"
+
+    "MOV R4, #0 \n\t" // x-pos
+    "MOV R5, #0 \n\t" // y-pos
+
+    "LDR R2, =white \n\t"
+    "LDR R2, [R2] \n\t"
+
+    "LDR R6, =320 \n\t" // x-max
+    "LDR R7, =240 \n\t" // y-max
 
     // Clear Screen
-    "    LDR R4, =VGAaddress \n\t" // Load the address of VGAaddress into R4
-    "    LDR R4, [R4] \n\t"        // Load the value of VGAaddress into R4
+    "CsInnerLoop: \n\t"
+    "MOV R0, R4 \n\t" // Prepare x-pos for SetPixel
+    "MOV R1, R5 \n\t" // Prepare y-pos for SetPixel
 
-    "    LDR R5, =VGAlastPixelAddress \n\t" // Load the address of VGAlastPixelAddress into R5
-    "    LDR R5, [R5] \n\t"                 // Load the value of VGAlastPixelAddress into R5
+    "BL SetPixel \n\t"
 
-    "    LDR R6, =black \n\t"
-    "    LDR R6, [R6] \n\t" // Load the color value for black into R6
+    "ADD R4, R4, #1 \n\t"
+    "CMP R4, R6 \n\t"
 
-    "    loop: \n\t"
-    "    STR R6, [R4] \n\t"   // Store the color value for black at the pixel address in R4
-    "    ADD R4, R4, #4 \n\t" // Increment the pixel address by 4 bytes
+    "BLT CsInnerLoop \n\t"
 
-    "    CMP R4, R5 \n\t" // Compare the pixel address with the last pixel address
-    "    BLT loop \n\t"   // Loop if the pixel address is less than the last pixel address
+    "MOV R4, #0 \n\t"     // Reset x-pos
+    "ADD R5, R5, #1 \n\t" // Increment y-pos
 
-    "    POP {R4, R5, R6} \n\t"
-    "    POP {LR} \n\t"
-    "    BX LR");
+    "CMP R5, R7 \n\t"
+    "BLT CsInnerLoop \n\t"
+
+    "POP {R4-R7, LR} \n\t"
+    "BX LR");
 
 // assumes R0 = x-coord, R1 = y-coord, R2 = colorvalue
 asm("SetPixel: \n\t"
@@ -135,7 +143,7 @@ asm("DrawBar: \n\t"
     "MOV R4, R0 \n\t" // move y-pos to R4
     "MOV R5, #2 \n\t" // x-offset for the bar
 
-    "LDR R2, =white \n\t" // load color value for white into R2
+    "LDR R2, =black \n\t" // load color value for white into R2
     "LDR R2, [R2] \n\t"
 
     "ADD R6, R4, #45 \n\t" // y-pos maximum
