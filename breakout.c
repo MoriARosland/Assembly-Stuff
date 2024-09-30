@@ -1,3 +1,5 @@
+#include <stdlib.h> // Provides malloc, which is needed in init_block_map()
+
 /***************************************************************************************************
  * DON'T REMOVE THE VARIABLES BELOW THIS COMMENT                                                   *
  **************************************************************************************************/
@@ -8,25 +10,17 @@ unsigned int __attribute__((used)) blue = 0x000000FF;
 unsigned int __attribute__((used)) white = 0x0000FFFF;
 unsigned int __attribute__((used)) black = 0x0;
 
-unsigned char n_cols = 10; // <- This variable might change depending on the size of the game. Supported value range: [1,18]
+const unsigned char n_cols = 10; // <- This variable might change depending on the size of the game. Supported value range: [1,18]
 
-char *won = "You Won";       // DON'T TOUCH THIS - keep the string as is
-char *lost = "You Lost";     // DON'T TOUCH THIS - keep the string as is
-unsigned short height = 240; // DON'T TOUCH THIS - keep the value as is
-unsigned short width = 320;  // DON'T TOUCH THIS - keep the value as is
-char font8x8[128][8];        // DON'T TOUCH THIS - this is a forward declaration
+char *won = "You Won";             // DON'T TOUCH THIS - keep the string as is
+char *lost = "You Lost";           // DON'T TOUCH THIS - keep the string as is
+const unsigned short height = 240; // DON'T TOUCH THIS - keep the value as is
+const unsigned short width = 320;  // DON'T TOUCH THIS - keep the value as is
+char font8x8[128][8];              // DON'T TOUCH THIS - this is a forward declaration
 /**************************************************************************************************/
 
 /***
  * TODO: Define your variables below this comment
- */
-
-const unsigned short BarCenterOffset = 22; // Ease of use when centering the DrawBar
-const unsigned short BlockSize = 15;       // Size of a square block in px
-const unsigned short BallSize = 7;         // Size of a square ball in px
-
-/***
- * You might use and modify the struct/enum definitions below this comment
  */
 typedef struct _block {
   unsigned char destroyed;
@@ -44,6 +38,13 @@ typedef enum _gameState {
   Exit = 4,
 } GameState;
 GameState currentState = Stopped;
+
+const unsigned short BarCenterOffset = 22; // Ease of use when centering the DrawBar
+const unsigned short BlockSize = 15;       // Size of a square block in px
+const unsigned short BallSize = 7;         // Size of a square ball in px
+
+unsigned int num_blocks;
+Block *block_map;
 
 /***
  * Here follow the C declarations for our assembly functions
@@ -180,28 +181,8 @@ void draw_ball(unsigned int x_coord, unsigned int y_coord) {
 }
 
 void draw_playing_field() {
-  unsigned int x_pos = width - n_cols * BlockSize; // Horizontal starting position of playing field
-  unsigned int y_pos = 0;
-
-  for (unsigned int y = y_pos; y < height; y += BlockSize) {
-    for (unsigned int x = x_pos; x < width; x += BlockSize) {
-      unsigned int color = blue;
-
-      // Paint the board in a chequered pattern, alternating between 3 colors.
-      switch ((x / BlockSize + y / BlockSize) % 3) {
-      case 0:
-        color = red;
-        break;
-      case 1:
-        color = green;
-        break;
-      case 2:
-        color = blue;
-        break;
-      }
-
-      DrawBlock(x, y, BlockSize, BlockSize, color);
-    }
+  for (unsigned int i = 0; i < num_blocks; i++) {
+    DrawBlock(block_map[i].pos_x, block_map[i].pos_y, BlockSize, BlockSize, block_map[i].color);
   }
 }
 
@@ -271,6 +252,41 @@ void wait_for_start() {
   // TODO: Implement waiting behaviour until the user presses either w/s
 }
 
+void init_block_map() {
+  num_blocks = n_cols * (height / BlockSize);
+  block_map = (Block *)malloc(num_blocks * sizeof(Block));
+
+  unsigned int x_pos = width - n_cols * BlockSize; // Horizontal starting position of the playing field
+  unsigned int y_pos = 0;
+  unsigned int block_index = 0;
+
+  for (unsigned int y = y_pos; y < height; y += BlockSize) {
+    for (unsigned int x = x_pos; x < width; x += BlockSize) {
+      if (block_index >= num_blocks) break;
+
+      block_map[block_index].pos_x = x;
+      block_map[block_index].pos_y = y;
+
+      // Alternate color in a chequered pattern.
+      switch ((x / BlockSize + y / BlockSize) % 3) {
+      case 0:
+        block_map[block_index].color = red;
+        break;
+      case 1:
+        block_map[block_index].color = green;
+        break;
+      case 2:
+        block_map[block_index].color = blue;
+        break;
+      }
+
+      block_map[block_index].deleted = 0;
+      block_map[block_index].destroyed = 0;
+      block_index++;
+    }
+  }
+}
+
 int main(int argc, char *argv[]) {
   ClearScreen();
 
@@ -279,6 +295,8 @@ int main(int argc, char *argv[]) {
 
     // DEBUG:
     currentState = Running;
+
+    init_block_map();
 
     wait_for_start();
     play();
