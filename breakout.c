@@ -332,15 +332,15 @@ void update_game_state() {
     return;
   }
 
-  // if (ball.x_pos > 320) {
-  //   currentState = Won;
-  //   return;
-  // }
+  if (ball.x_pos > 320) {
+    currentState = Won;
+    return;
+  }
 
-  // if (ball.x_pos == 0) {
-  //   currentState = Lost;
-  //   return;
-  // }
+  if (ball.x_pos == 0) {
+    currentState = Lost;
+    return;
+  }
 
   update_ball_position();
 
