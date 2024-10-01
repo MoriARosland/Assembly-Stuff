@@ -23,6 +23,9 @@ char font8x8[128][8];              // DON'T TOUCH THIS - this is a forward decla
  * TODO: Define your variables below this comment
  */
 
+#define TRUE 1
+#define FALSE 0
+
 #define HorizontalVelocity 2
 #define DiagonalVelocity 2
 
@@ -258,18 +261,39 @@ void draw_playing_field() {
   }
 }
 
+unsigned int check_x_range(unsigned int block_index) {
+  if (ball.x_pos + 7 >= block_map[block_index].pos_x && ball.x_pos + 7 <= block_map[block_index].pos_x + 15) {
+    return TRUE;
+  } else {
+    return FALSE;
+  }
+}
+
+unsigned int check_y_range(unsigned int block_index) {
+  for (unsigned int i = 0; i < BallSize; i++) {
+    if (ball.y_pos + i >= block_map[block_index].pos_y && ball.y_pos + i <= block_map[block_index].pos_y + BlockSize) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
 void check_block_hit() {
+
   for (unsigned int i = 0; i < num_blocks; i++) {
     if (block_map[i].destroyed == 1) {
       continue;
     } else {
-      if (ball.x_pos + 7 >= block_map[i].pos_x + 7 && ball.x_pos + 7 <= block_map[i].pos_x + 15 && ball.y_pos + 7 >= block_map[i].pos_y && ball.y_pos + 7 <= block_map[i].pos_y + 15) {
-        block_map[i].destroyed = 1;
+      unsigned int x_hit = check_x_range(i);
+      unsigned int y_hit = check_y_range(i);
+
+      if (x_hit == TRUE && y_hit == TRUE) {
+        block_map[i]
+            .destroyed = 1;
+        block_map[i].color = white;
         block_map[i].color = white;
 
         ball.direction = HorizontalLeft;
-
-        return;
       }
     }
   }
@@ -295,7 +319,7 @@ void update_game_state() {
 
   update_ball_position();
 
-  if (ball.x_pos >= 164) { // x = 164 earliset possible hit
+  if (ball.x_pos >= 163) { // x = 164 earliset possible hit
     check_block_hit();
   } else if (ball.x_pos <= 8) {
     check_bar_hit();
@@ -368,7 +392,8 @@ void init_block_map() {
 
   for (unsigned int y = y_pos; y < height; y += BlockSize) {
     for (unsigned int x = x_pos; x < width; x += BlockSize) {
-      if (block_index >= num_blocks) break;
+      if (block_index >= num_blocks)
+        break;
 
       block_map[block_index].pos_x = x;
       block_map[block_index].pos_y = y;
