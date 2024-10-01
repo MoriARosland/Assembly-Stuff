@@ -44,6 +44,7 @@ typedef enum _direction {
   DiagonalDownRight = 3,
   DiagonalUpLeft = 4,
   DiagonalDownLeft = 5,
+  NotApplicable = 6,
 } Direction;
 
 typedef struct _block {
@@ -55,13 +56,13 @@ typedef struct _block {
 } Block;
 
 /// @brief Struct to track the ball position
-typedef struct _ball {
+typedef struct _movingObject {
   unsigned int x_pos;
   unsigned int y_pos;
   unsigned int x_pos_prev;
   unsigned int y_pos_prev;
   Direction direction;
-} Ball;
+} MovingObject;
 
 GameState currentState = Stopped;
 
@@ -72,7 +73,8 @@ const unsigned short BallSize = 7;         // Size of a square ball in px
 unsigned int num_blocks;
 
 volatile Block *block_map;
-volatile Ball ball = {8, 117, 8, 117, HorizontalRight}; // Initial position of ball (x = gamebar.x + 1, y = height / 2 - ballheight / 2 )
+volatile MovingObject ball = {8, 117, 8, 117, HorizontalRight}; // Initial position of ball (x = gamebar.x + 1, y = height / 2 - ballheight / 2 )
+MovingObject playerBar = {0, 98, 0, 98, NotApplicable};
 
 /***
  * Here follow the C declarations for our assembly functions
@@ -261,7 +263,7 @@ void draw_playing_field() {
   }
 }
 
-unsigned int check_x_range(unsigned int block_index) {
+unsigned short block_hit_x(unsigned int block_index) {
   if (ball.x_pos + 7 >= block_map[block_index].pos_x && ball.x_pos + 7 <= block_map[block_index].pos_x + 15) {
     return TRUE;
   } else {
@@ -269,7 +271,7 @@ unsigned int check_x_range(unsigned int block_index) {
   }
 }
 
-unsigned int check_y_range(unsigned int block_index) {
+unsigned short block_hit_y(unsigned int block_index) {
   for (unsigned int i = 0; i < BallSize; i++) {
     if (ball.y_pos + i >= block_map[block_index].pos_y && ball.y_pos + i <= block_map[block_index].pos_y + BlockSize) {
       return TRUE;
@@ -279,13 +281,12 @@ unsigned int check_y_range(unsigned int block_index) {
   return FALSE;
 }
 void check_block_hit() {
-
   for (unsigned int i = 0; i < num_blocks; i++) {
     if (block_map[i].destroyed == 1) {
       continue;
     } else {
-      unsigned int x_hit = check_x_range(i);
-      unsigned int y_hit = check_y_range(i);
+      unsigned int x_hit = block_hit_x(i);
+      unsigned int y_hit = block_hit_y(i);
 
       if (x_hit == TRUE && y_hit == TRUE) {
         block_map[i]
@@ -299,7 +300,31 @@ void check_block_hit() {
   }
 }
 
+unsigned short bar_hit_x() {
+  if (ball.x_pos <= playerBar.x_pos + 7) {
+    return TRUE;
+  } else {
+    return FALSE;
+  }
+}
+
+unsigned short bar_hit_y() {
+  for (unsigned short i = 0; i < BallSize; i++) {
+    if (ball.y_pos + i >= playerBar.y_pos && ball.y_pos + i <= playerBar.y_pos + 45) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
 void check_bar_hit() {
+  unsigned short x_hit = bar_hit_x();
+  unsigned short y_hit = bar_hit_y();
+
+  if (x_hit == TRUE && y_hit == TRUE) {
+    ball.direction = HorizontalRight;
+  }
 }
 
 void update_game_state() {
@@ -319,7 +344,7 @@ void update_game_state() {
 
   update_ball_position();
 
-  if (ball.x_pos >= 163) { // x = 164 earliset possible hit
+  if (ball.x_pos >= 163) { // x = 164 earliset possible hit for n_cols = 10
     check_block_hit();
   } else if (ball.x_pos <= 8) {
     check_bar_hit();
@@ -351,7 +376,7 @@ void play() {
     }
     draw_playing_field();
     draw_ball();
-    DrawBar(120 - BarCenterOffset); // TODO: replace the constant value with the current position of the bar
+    DrawBar(playerBar.y_pos); // TODO: replace the constant value with the current position of the bar
   }
   if (currentState == Won) {
     write(won);
