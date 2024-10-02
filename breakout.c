@@ -229,7 +229,7 @@ void update_ball_position() {
     break;
 
   case HorizontalLeft:
-    ball.x_pos -= HorizontalLeft;
+    ball.x_pos -= HorizontalVelocity;
     break;
 
   case DiagonalUpRight:
