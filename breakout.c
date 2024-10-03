@@ -19,12 +19,11 @@ const unsigned short width = 320;  // DON'T TOUCH THIS - keep the value as is
 char font8x8[128][8];              // DON'T TOUCH THIS - this is a forward declaration
 /**************************************************************************************************/
 
-/***
- * TODO: Define your variables below this comment
- */
-
 #define TRUE 1
 #define FALSE 0
+
+#define BALL_MIN_Y (0)
+#define BALL_MAX_Y (233)
 
 #define BAR_HEIGHT 45 // px
 #define BAR_STEP 15   // px
@@ -41,12 +40,12 @@ typedef enum _gameState {
 } GameState;
 
 typedef enum _direction {
-  HorizontalRight = 0,
-  HorizontalLeft = 1,
-  DiagonalUpRight = 2,
-  DiagonalDownRight = 3,
-  DiagonalUpLeft = 4,
-  DiagonalDownLeft = 5,
+  DiagonalUpRight = 45,
+  HorizontalRight = 90,
+  DiagonalDownRight = 135,
+  DiagonalDownLeft = 225,
+  HorizontalLeft = 270,
+  DiagonalUpLeft = 315,
   NotApplicable = 6,
   VerticalDown = 0x73,
   VerticalUp = 0x77,
@@ -62,8 +61,8 @@ typedef struct _block {
 
 /// @brief Struct to track the ball position
 typedef struct _movingObject {
-  unsigned int x_pos;
-  unsigned int y_pos;
+  signed int x_pos;
+  signed int y_pos;
   unsigned int x_pos_prev;
   unsigned int y_pos_prev;
   Direction direction;
@@ -226,6 +225,8 @@ void update_ball_position() {
   ball.x_pos_prev = ball.x_pos;
   ball.y_pos_prev = ball.y_pos;
 
+  signed int newYpos = 0;
+
   switch (ball.direction) {
   case HorizontalRight:
     ball.x_pos += HorizontalVelocity;
@@ -237,22 +238,53 @@ void update_ball_position() {
 
   case DiagonalUpRight:
     ball.x_pos += DiagonalVelocity;
-    ball.y_pos -= DiagonalVelocity;
+
+    newYpos = ball.y_pos - DiagonalVelocity;
+
+    if (newYpos <= 0) {
+      ball.y_pos = 0;
+    } else {
+      ball.y_pos = newYpos;
+    }
+
     break;
 
   case DiagonalDownRight:
     ball.x_pos += DiagonalVelocity;
-    ball.y_pos += DiagonalVelocity;
+
+    newYpos = ball.y_pos + DiagonalVelocity;
+
+    if (newYpos + BallSize >= BALL_MAX_Y) {
+      ball.y_pos = BALL_MAX_Y;
+    } else {
+      ball.y_pos = newYpos;
+    }
     break;
 
   case DiagonalUpLeft:
     ball.x_pos -= DiagonalVelocity;
-    ball.y_pos -= DiagonalVelocity;
+
+    newYpos = ball.y_pos - DiagonalVelocity;
+
+    if (newYpos <= 0) {
+      ball.y_pos = 0;
+    } else {
+      ball.y_pos = newYpos;
+    }
+
     break;
 
   case DiagonalDownLeft:
     ball.x_pos -= DiagonalVelocity;
-    ball.y_pos += DiagonalVelocity;
+
+    newYpos = ball.y_pos + DiagonalVelocity;
+
+    if (newYpos + BallSize >= BALL_MAX_Y) {
+      ball.y_pos = BALL_MAX_Y;
+    } else {
+      ball.y_pos = newYpos;
+    }
+
     break;
 
   default:
@@ -283,6 +315,7 @@ unsigned short block_hit_y(unsigned int block_index) {
 
   return FALSE;
 }
+
 void check_block_hit() {
   for (unsigned int i = 0; i < num_blocks; i++) {
     if (block_map[i].destroyed == 1) {
@@ -303,30 +336,13 @@ void check_block_hit() {
   }
 }
 
-unsigned short bar_hit_x() {
-  if (ball.x_pos <= playerBar.x_pos + 7) {
-    return TRUE;
-  } else {
-    return FALSE;
-  }
-}
-
-unsigned short bar_hit_y() {
-  for (unsigned short i = 0; i < BallSize; i++) {
-    if (ball.y_pos + i >= playerBar.y_pos && ball.y_pos + i <= playerBar.y_pos + 45) {
-      return TRUE;
-    }
-  }
-
-  return FALSE;
-}
-
 void check_bar_hit() {
-  unsigned short x_hit = bar_hit_x();
-  unsigned short y_hit = bar_hit_y();
-
-  if (x_hit == TRUE && y_hit == TRUE) {
+  if (ball.y_pos + 4 < playerBar.y_pos + 15 && ball.y_pos >= playerBar.y_pos) {
+    ball.direction = DiagonalUpRight;
+  } else if (ball.y_pos + 4 < playerBar.y_pos + 30 && ball.y_pos >= playerBar.y_pos + 15) {
     ball.direction = HorizontalRight;
+  } else if (ball.y_pos + 4 <= playerBar.y_pos + 45 && ball.y_pos >= playerBar.y_pos + 30) {
+    ball.direction = DiagonalDownRight;
   }
 }
 
@@ -347,14 +363,17 @@ void update_game_state() {
 
   update_ball_position();
 
+  if ((ball.y_pos == BALL_MIN_Y && ball.direction <= 180) || (ball.y_pos == BALL_MAX_Y && ball.direction >= 180)) {
+    ball.direction += 45;
+  } else if ((ball.y_pos == BALL_MIN_Y && ball.direction >= 180) || (ball.y_pos == BALL_MAX_Y && ball.direction <= 180)) {
+    ball.direction -= 45;
+  }
+
   if (ball.x_pos >= 163) { // x = 164 earliset possible hit for n_cols = 10
     check_block_hit();
   } else if (ball.x_pos <= 8) {
     check_bar_hit();
   }
-
-  // TODO: Hit Check with Blocks
-  // HINT: try to only do this check when we potentially have a hit, as it is relatively expensive and can slow down game play a lot
 }
 
 void update_bar_state() {
