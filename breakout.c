@@ -45,6 +45,8 @@ typedef enum _direction {
   DiagonalUpLeft = 4,
   DiagonalDownLeft = 5,
   NotApplicable = 6,
+  VerticalDown = 0x73,
+  VerticalUp = 0x77,
 } Direction;
 
 typedef struct _block {
@@ -83,7 +85,7 @@ MovingObject playerBar = {0, 98, 0, 98, NotApplicable};
 void ClearScreen();
 void SetPixel(unsigned int x_coord, unsigned int y_coord, unsigned int color);
 void DrawBlock(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned int color);
-void DrawBar(unsigned int y);
+void DrawBar(unsigned int y, unsigned int color);
 int ReadUart();
 void WriteUart(char c);
 
@@ -172,8 +174,7 @@ asm("DrawBar: \n\t"
     "MOV R4, R0 \n\t" // move y-pos to R4
     "MOV R5, #0 \n\t" // x-offset for the bar
 
-    "LDR R2, =black \n\t" // load color value for white into R2
-    "LDR R2, [R2] \n\t"
+    "MOV R2, R1 \n\t" // Move the color value to R2
 
     "ADD R6, R4, #45 \n\t" // y-pos maximum
 
@@ -355,10 +356,29 @@ void update_game_state() {
 }
 
 void update_bar_state() {
-  int remaining = 0;
-  // TODO: Read all chars in the UART Buffer and apply the respective bar position updates
-  // HINT: w == 77, s == 73
-  // HINT Format: 0x00 'Remaining Chars':2 'Ready 0x80':2 'Char 0xXX':2, sample: 0x00018077 (1 remaining character, buffer is ready, current character is 'w')
+  unsigned int word = ReadUart();
+  unsigned char rdy = (word >> 8) & 0xff;
+
+  if (rdy != 0x80) {
+    return; // UART not ready, skip current iteration.
+  }
+
+  playerBar.y_pos_prev = playerBar.y_pos;
+
+  unsigned char byte = word & 0xff;
+
+  if (byte == VerticalUp) {
+    playerBar.y_pos -= 15; // px
+  } else if (byte == VerticalDown) {
+    playerBar.y_pos += 15; // px
+  }
+
+  // We don't need to check remanining bytes since the update function
+  // Runs once every play() loop. This will clear the buffer.
+
+  // Also, we only want to apply one step every cycle.
+  // If not, the player can teleport the playerbar in one cycle rather
+  // than stepping it.
 }
 
 void write(char *str) {
@@ -376,7 +396,9 @@ void play() {
     }
     draw_playing_field();
     draw_ball();
-    DrawBar(playerBar.y_pos); // TODO: replace the constant value with the current position of the bar
+
+    DrawBar(playerBar.y_pos_prev, white); // Clear the previous position
+    DrawBar(playerBar.y_pos, black);
   }
   if (currentState == Won) {
     write(won);
