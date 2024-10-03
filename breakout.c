@@ -54,8 +54,8 @@ typedef enum _direction {
 typedef struct _block {
   unsigned char destroyed;
   unsigned char deleted;
-  unsigned int pos_x;
-  unsigned int pos_y;
+  unsigned int x_pos;
+  unsigned int y_pos;
   unsigned int color;
 } Block;
 
@@ -294,12 +294,12 @@ void update_ball_position() {
 
 void draw_playing_field() {
   for (unsigned int i = 0; i < num_blocks; i++) {
-    DrawBlock(block_map[i].pos_x, block_map[i].pos_y, BlockSize, BlockSize, block_map[i].color);
+    DrawBlock(block_map[i].x_pos, block_map[i].y_pos, BlockSize, BlockSize, block_map[i].color);
   }
 }
 
 unsigned short block_hit_x(unsigned int block_index) {
-  if (ball.x_pos + 7 >= block_map[block_index].pos_x && ball.x_pos + 7 <= block_map[block_index].pos_x + 15) {
+  if (ball.x_pos + 7 >= block_map[block_index].x_pos && ball.x_pos + 7 <= block_map[block_index].x_pos + 15) {
     return TRUE;
   } else {
     return FALSE;
@@ -308,7 +308,7 @@ unsigned short block_hit_x(unsigned int block_index) {
 
 unsigned short block_hit_y(unsigned int block_index) {
   for (unsigned int i = 0; i < BallSize; i++) {
-    if (ball.y_pos + i >= block_map[block_index].pos_y && ball.y_pos + i <= block_map[block_index].pos_y + BlockSize) {
+    if (ball.y_pos + i >= block_map[block_index].y_pos && ball.y_pos + i <= block_map[block_index].y_pos + BlockSize) {
       return TRUE;
     }
   }
@@ -474,8 +474,8 @@ void init_block_map() {
       if (block_index >= num_blocks)
         break;
 
-      block_map[block_index].pos_x = x;
-      block_map[block_index].pos_y = y;
+      block_map[block_index].x_pos = x;
+      block_map[block_index].y_pos = y;
 
       // Alternate color in a chequered pattern.
       switch ((x / BlockSize + y / BlockSize) % 3) {
