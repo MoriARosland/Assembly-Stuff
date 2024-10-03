@@ -26,6 +26,9 @@ char font8x8[128][8];              // DON'T TOUCH THIS - this is a forward decla
 #define TRUE 1
 #define FALSE 0
 
+#define BAR_HEIGHT 45 // px
+#define BAR_STEP 15   // px
+
 #define HorizontalVelocity 2
 #define DiagonalVelocity 2
 
@@ -68,9 +71,8 @@ typedef struct _movingObject {
 
 GameState currentState = Stopped;
 
-const unsigned short BarCenterOffset = 22; // Ease of use when centering the DrawBar
-const unsigned short BlockSize = 15;       // Size of a square block in px
-const unsigned short BallSize = 7;         // Size of a square ball in px
+const unsigned short BlockSize = 15; // Size of a square block in px
+const unsigned short BallSize = 7;   // Size of a square ball in px
 
 unsigned int num_blocks;
 
@@ -368,15 +370,26 @@ void update_bar_state() {
   unsigned char byte = word & 0xff;
 
   if (byte == VerticalUp) {
-    playerBar.y_pos -= 15; // px
+    if (playerBar.y_pos < BAR_STEP) {
+      playerBar.y_pos = 0;
+    } else {
+      playerBar.y_pos -= BAR_STEP;
+    }
+
   } else if (byte == VerticalDown) {
-    playerBar.y_pos += 15; // px
+    unsigned int step_limit = height - BAR_HEIGHT - BAR_STEP;
+
+    if (playerBar.y_pos > step_limit) {
+      playerBar.y_pos = height - BAR_HEIGHT;
+    } else {
+      playerBar.y_pos += BAR_STEP;
+    }
   }
 
   // We don't need to check remanining bytes since the update function
-  // Runs once every play() loop. This will clear the buffer.
+  // runs once every play() loop. This will clear the buffer.
 
-  // Also, we only want to apply one step every cycle.
+  // Additionally, we only want to apply one step every cycle.
   // If not, the player can teleport the playerbar in one cycle rather
   // than stepping it.
 }
