@@ -39,6 +39,13 @@ typedef enum _gameState {
   Exit = 4,
 } GameState;
 
+typedef enum _hitType {
+  NoHit = 0,
+  TopHit,
+  RightHit,
+  BottomHit
+} HitType;
+
 typedef enum _direction {
   DiagonalUpRight = 45,
   HorizontalRight = 90,
@@ -89,6 +96,7 @@ void DrawBlock(unsigned int x, unsigned int y, unsigned int width, unsigned int 
 void DrawBar(unsigned int y, unsigned int color);
 int ReadUart();
 void WriteUart(char c);
+void write(char *str);
 
 /***
  * Now follow the assembly implementations
@@ -202,7 +210,10 @@ asm("ReadUart:\n\t"
     "LDR R0, [R1]\n\t"
     "BX LR");
 
-// TODO: Add the WriteUart assembly procedure here that respects the WriteUart C declaration on line 46
+asm("WriteUart: \n\t"
+    "LDR R1, =0xff201000 \n\t"
+    "STRB R0, [R1] \n\t"
+    "BX LR");
 
 void draw_ball() {
 
@@ -298,22 +309,97 @@ void draw_playing_field() {
   }
 }
 
-unsigned short block_hit_x(unsigned int block_index) {
-  if (ball.x_pos + 7 >= block_map[block_index].x_pos && ball.x_pos + 7 <= block_map[block_index].x_pos + 15) {
-    return TRUE;
-  } else {
-    return FALSE;
+void update_ball_direction(HitType hit_t) {
+  switch (hit_t) {
+  case TopHit:
+    if (ball.direction == DiagonalUpRight) {
+      ball.direction = DiagonalDownRight;
+    } else if (ball.direction == DiagonalUpLeft) {
+      ball.direction = DiagonalDownLeft;
+    }
+
+    ball.direction = DiagonalDownRight;
+    break;
+
+  case RightHit:
+    if (ball.direction == DiagonalUpRight) {
+      ball.direction = DiagonalUpLeft;
+    } else if (ball.direction == HorizontalRight) {
+      ball.direction = HorizontalLeft;
+    } else if (ball.direction == DiagonalDownRight) {
+      ball.direction = DiagonalDownLeft;
+    }
+    break;
+
+  case BottomHit:
+    if (ball.direction == DiagonalDownRight) {
+      ball.direction = DiagonalUpRight;
+    } else if (ball.direction == DiagonalDownLeft) {
+      ball.direction = DiagonalUpLeft;
+    }
+
+    break;
+
+  default:
+    break;
   }
 }
 
-unsigned short block_hit_y(unsigned int block_index) {
-  for (unsigned int i = 0; i < BallSize; i++) {
-    if (ball.y_pos + i >= block_map[block_index].y_pos && ball.y_pos + i <= block_map[block_index].y_pos + BlockSize) {
-      return TRUE;
-    }
+HitType ball_right_hit(unsigned int index) {
+  unsigned int x_valid = 0;
+  unsigned int y_valid = 0;
+
+  if (ball.x_pos + 7 >= block_map[index].x_pos && ball.x_pos + 7 <= block_map[index].x_pos + 15) {
+    x_valid = 1;
   }
 
-  return FALSE;
+  if (ball.y_pos + 4 >= block_map[index].y_pos && ball.y_pos + 4 <= block_map[index].y_pos + BlockSize) {
+    y_valid = 1;
+  }
+
+  if (x_valid && y_valid) {
+    return RightHit;
+  } else {
+    return NoHit;
+  }
+}
+
+HitType ball_top_hit(unsigned int index) {
+  unsigned int x_valid = 0;
+  unsigned int y_valid = 0;
+
+  if (ball.x_pos + 4 >= block_map[index].x_pos && ball.x_pos + 4 <= block_map[index].x_pos + 15) {
+    x_valid = 1;
+  }
+
+  if (ball.y_pos <= block_map[index].y_pos + BlockSize && ball.y_pos >= block_map[index].y_pos) {
+    y_valid = 1;
+  }
+
+  if (x_valid && y_valid) {
+    return TopHit;
+  } else {
+    return NoHit;
+  }
+}
+
+HitType ball_bottom_hit(unsigned int index) {
+  unsigned int x_valid = 0;
+  unsigned int y_valid = 0;
+
+  if (ball.x_pos + 4 >= block_map[index].x_pos && ball.x_pos + 4 <= block_map[index].x_pos + 15) {
+    x_valid = 1;
+  }
+
+  if (ball.y_pos + BallSize >= block_map[index].y_pos && ball.y_pos + BallSize <= block_map[index].y_pos + BlockSize) {
+    y_valid = 1;
+  }
+
+  if (x_valid && y_valid) {
+    return BottomHit;
+  } else {
+    return NoHit;
+  }
 }
 
 void check_block_hit() {
@@ -321,16 +407,29 @@ void check_block_hit() {
     if (block_map[i].destroyed == 1) {
       continue;
     } else {
-      unsigned int x_hit = block_hit_x(i);
-      unsigned int y_hit = block_hit_y(i);
+      unsigned int top_hit = ball_top_hit(i);
+      unsigned int right_hit = ball_right_hit(i);
+      unsigned int bottom_hit = ball_bottom_hit(i);
 
-      if (x_hit == TRUE && y_hit == TRUE) {
-        block_map[i]
-            .destroyed = 1;
-        block_map[i].color = white;
+      if (right_hit || top_hit || bottom_hit) {
+        block_map[i].destroyed = 1;
         block_map[i].color = white;
 
-        ball.direction = HorizontalLeft;
+        if (right_hit) {
+          update_ball_direction(right_hit);
+          write("RIGHT HIT DELETE\n");
+          break;
+        }
+        if (top_hit) {
+          update_ball_direction(top_hit);
+          write("TOP HIT DELETE\n");
+          break;
+        }
+        if (bottom_hit) {
+          update_ball_direction(bottom_hit);
+          write("BOTTOM HIT DELETE\n");
+          break;
+        }
       }
     }
   }
@@ -356,7 +455,7 @@ void update_game_state() {
     return;
   }
 
-  if (ball.x_pos == 0) {
+  if (ball.x_pos < 7) {
     currentState = Lost;
     return;
   }
@@ -365,13 +464,15 @@ void update_game_state() {
 
   if ((ball.y_pos == BALL_MIN_Y && ball.direction <= 180) || (ball.y_pos == BALL_MAX_Y && ball.direction >= 180)) {
     ball.direction += 45;
+    return;
   } else if ((ball.y_pos == BALL_MIN_Y && ball.direction >= 180) || (ball.y_pos == BALL_MAX_Y && ball.direction <= 180)) {
     ball.direction -= 45;
+    return;
   }
 
   if (ball.x_pos >= 163) { // x = 164 earliset possible hit for n_cols = 10
     check_block_hit();
-  } else if (ball.x_pos <= 8) {
+  } else if (ball.x_pos <= 10) {
     check_bar_hit();
   }
 }
@@ -414,7 +515,12 @@ void update_bar_state() {
 }
 
 void write(char *str) {
-  // TODO: Use WriteUart to write the string to JTAG UART
+  char byte;
+
+  while ((byte = *str) != 0x00) {
+    WriteUart(byte);
+    str++;
+  }
 }
 
 void play() {
