@@ -82,8 +82,8 @@ const unsigned short BallSize = 7;   // Size of a square ball in px
 
 unsigned int num_blocks;
 
-volatile Block *block_map;
-volatile MovingObject ball = {8, 117, 8, 117, HorizontalRight}; // Initial position of ball (x = gamebar.x + 1, y = height / 2 - ballheight / 2 )
+Block *block_map;
+MovingObject ball = {8, 117, 8, 117, HorizontalRight}; // Initial position of ball (x = gamebar.x + 1, y = height / 2 - ballheight / 2 )
 MovingObject playerBar = {0, 98, 0, 98, NotApplicable};
 
 /***
@@ -345,92 +345,96 @@ void update_ball_direction(HitType hit_t) {
   }
 }
 
-HitType ball_right_hit(unsigned int index) {
-  unsigned int x_valid = 0;
-  unsigned int y_valid = 0;
+int checkBallBlockCollision(int index) {
+  // Ball center
+  int ball_center_x = ball.x_pos + 3; // 7px ball, center at +3
+  int ball_center_y = ball.y_pos + 3;
 
-  if (ball.x_pos + 7 >= block_map[index].x_pos && ball.x_pos + 7 <= block_map[index].x_pos + 15) {
-    x_valid = 1;
+  // Fetch the block directly from block_map using index
+  Block *block = &block_map[index];
+
+  // Block edges
+  int block_left = block->x_pos;
+  int block_right = block->x_pos + BlockSize;
+  int block_top = block->y_pos;
+  int block_bottom = block->y_pos + BlockSize;
+
+  // Check for collision with top of block
+  if (ball_center_y <= block_bottom && ball_center_y >= block_top &&
+      ball_center_x >= block_left && ball_center_x <= block_right) {
+    if (ball.direction == DiagonalUpRight || ball.direction == DiagonalUpLeft) {
+      // Ball is coming from below, so it hit the top of the block
+      if (ball.direction == DiagonalUpRight) {
+        ball.direction = DiagonalDownRight; // 45° → 135°
+      } else if (ball.direction == DiagonalUpLeft) {
+        ball.direction = DiagonalDownLeft; // 315° → 225°
+      }
+      return 1;
+    }
+  }
+  // Check for collision with right of block
+  if (ball_center_x <= block_right && ball_center_x >= block_left &&
+      ball_center_y >= block_top && ball_center_y <= block_bottom) {
+    if (ball.direction == HorizontalRight || ball.direction == DiagonalUpRight || ball.direction == DiagonalDownRight) {
+      // Ball hit the block from the right
+      if (ball.direction == HorizontalRight) {
+        ball.direction = HorizontalLeft; // 90° → 270°
+        write("DIR CHANGE");
+      } else if (ball.direction == DiagonalUpRight) {
+        ball.direction = DiagonalUpLeft; // 45° → 315°
+      } else if (ball.direction == DiagonalDownRight) {
+        ball.direction = DiagonalDownLeft; // 135° → 225°
+      }
+      return 1;
+    }
+  }
+  // Check for collision with bottom of block
+  if (ball_center_y >= block_top && ball_center_y <= block_bottom &&
+      ball_center_x >= block_left && ball_center_x <= block_right) {
+    if (ball.direction == DiagonalDownRight || ball.direction == DiagonalDownLeft) {
+      // Ball hit the block from above
+      if (ball.direction == DiagonalDownRight) {
+        ball.direction = DiagonalUpRight; // 135° → 45°
+      } else if (ball.direction == DiagonalDownLeft) {
+        ball.direction = DiagonalUpLeft; // 225° → 315°
+      }
+      return 1;
+    }
+  }
+  // Check for collision with left of block
+  if (ball_center_x >= block_left && ball_center_x <= block_right &&
+      ball_center_y >= block_top && ball_center_y <= block_bottom) {
+    if (ball.direction == HorizontalLeft || ball.direction == DiagonalUpLeft || ball.direction == DiagonalDownLeft) {
+      // Ball hit the block from the left
+      if (ball.direction == HorizontalLeft) {
+        ball.direction = HorizontalRight; // 270° → 90°
+      } else if (ball.direction == DiagonalUpLeft) {
+        ball.direction = DiagonalUpRight; // 315° → 45°
+      } else if (ball.direction == DiagonalDownLeft) {
+        ball.direction = DiagonalDownRight; // 225° → 135°
+      }
+      return 1;
+    }
   }
 
-  if (ball.y_pos + 4 >= block_map[index].y_pos && ball.y_pos + 4 <= block_map[index].y_pos + BlockSize) {
-    y_valid = 1;
-  }
-
-  if (x_valid && y_valid) {
-    return RightHit;
-  } else {
-    return NoHit;
-  }
-}
-
-HitType ball_top_hit(unsigned int index) {
-  unsigned int x_valid = 0;
-  unsigned int y_valid = 0;
-
-  if (ball.x_pos + 4 >= block_map[index].x_pos && ball.x_pos + 4 <= block_map[index].x_pos + 15) {
-    x_valid = 1;
-  }
-
-  if (ball.y_pos <= block_map[index].y_pos + BlockSize && ball.y_pos >= block_map[index].y_pos) {
-    y_valid = 1;
-  }
-
-  if (x_valid && y_valid) {
-    return TopHit;
-  } else {
-    return NoHit;
-  }
-}
-
-HitType ball_bottom_hit(unsigned int index) {
-  unsigned int x_valid = 0;
-  unsigned int y_valid = 0;
-
-  if (ball.x_pos + 4 >= block_map[index].x_pos && ball.x_pos + 4 <= block_map[index].x_pos + 15) {
-    x_valid = 1;
-  }
-
-  if (ball.y_pos + BallSize >= block_map[index].y_pos && ball.y_pos + BallSize <= block_map[index].y_pos + BlockSize) {
-    y_valid = 1;
-  }
-
-  if (x_valid && y_valid) {
-    return BottomHit;
-  } else {
-    return NoHit;
-  }
+  // Return 1 if a hit was detected, otherwise return 0
+  return 0;
 }
 
 void check_block_hit() {
   for (unsigned int i = 0; i < num_blocks; i++) {
     if (block_map[i].destroyed == 1) {
-      continue;
-    } else {
-      unsigned int top_hit = ball_top_hit(i);
-      unsigned int right_hit = ball_right_hit(i);
-      unsigned int bottom_hit = ball_bottom_hit(i);
+      continue; // Skip destroyed blocks
+    }
 
-      if (right_hit || top_hit || bottom_hit) {
-        block_map[i].destroyed = 1;
-        block_map[i].color = white;
+    int hit = checkBallBlockCollision(i);
 
-        if (right_hit) {
-          update_ball_direction(right_hit);
-          write("RIGHT HIT DELETE\n");
-          break;
-        }
-        if (top_hit) {
-          update_ball_direction(top_hit);
-          write("TOP HIT DELETE\n");
-          break;
-        }
-        if (bottom_hit) {
-          update_ball_direction(bottom_hit);
-          write("BOTTOM HIT DELETE\n");
-          break;
-        }
-      }
+    if (hit == 1) {
+      // Primary block was hit, mark it as destroyed
+      block_map[i].destroyed = 1;
+      block_map[i].color = white;
+
+      return;
     }
   }
 }
