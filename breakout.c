@@ -485,20 +485,23 @@ char checkBlockCollision(Block *block) {
 }
 
 void check_block_hit() {
+  char preventDirectionCHange = FALSE;
+
   for (unsigned int i = 0; i < num_blocks; i++) {
     if (block_map[i].destroyed == 1) {
       continue; // Skip destroyed blocks
     }
 
-    int hit = checkBlockCollision(&block_map[i]);
+    HitType hit = checkBlockCollision(&block_map[i]);
 
-    if (hit != 1) {
+    if (hit != 0) {
       block_map[i].destroyed = 1;
       block_map[i].color = white;
 
-      // TODO: Implement direction change
-
-      return;
+      if (!preventDirectionCHange) {
+        update_ball_direction(hit);
+        preventDirectionCHange = TRUE;
+      }
     }
   }
 }
