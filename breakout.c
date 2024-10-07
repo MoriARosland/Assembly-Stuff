@@ -379,7 +379,6 @@ int checkBallBlockCollision(int index) {
       // Ball hit the block from the right
       if (ball.direction == HorizontalRight) {
         ball.direction = HorizontalLeft; // 90° → 270°
-        write("DIR CHANGE");
       } else if (ball.direction == DiagonalUpRight) {
         ball.direction = DiagonalUpLeft; // 45° → 315°
       } else if (ball.direction == DiagonalDownRight) {
@@ -542,6 +541,7 @@ void play() {
     DrawBar(playerBar.y_pos_prev, white); // Clear the previous position
     DrawBar(playerBar.y_pos, black);
   }
+
   if (currentState == Won) {
     write(won);
   } else if (currentState == Lost) {
@@ -564,11 +564,40 @@ void reset() {
     remaining = (out & 0xFF0000) >> 4;
   } while (remaining > 0);
 
-  // TODO: You might want to reset other state in here
+  ClearScreen();
+
+  // Reset ball state
+  ball.x_pos, ball.x_pos_prev = 8;
+  ball.y_pos, ball.y_pos_prev = 117;
+  ball.direction = HorizontalRight;
+
+  // Reset bar state
+  playerBar.x_pos, playerBar.x_pos_prev = 0;
+  playerBar.y_pos, playerBar.y_pos_prev = 98;
 }
 
 void wait_for_start() {
   // TODO: Implement waiting behaviour until the user presses either w/s
+
+  unsigned int word;
+  unsigned char rdy;
+  unsigned char byte;
+
+  while (1) {
+    word = ReadUart();
+    rdy = (word >> 8) & 0xff;
+
+    if (rdy != 0x80) {
+      continue; // UART not ready, skip current iteration.
+    }
+
+    byte = word & 0xff;
+
+    if (byte == VerticalUp || byte == VerticalDown) {
+      currentState = Running;
+      return;
+    }
+  }
 }
 
 void init_block_map() {
@@ -614,9 +643,12 @@ int main(int argc, char *argv[]) {
   while (1) {
 
     // DEBUG:
-    currentState = Running;
+    // currentState = Running;
 
     init_block_map();
+    draw_playing_field();
+    draw_ball();
+    DrawBar(playerBar.y_pos, black);
 
     wait_for_start();
     play();
