@@ -216,7 +216,6 @@ asm("WriteUart: \n\t"
     "BX LR");
 
 void draw_ball() {
-
   // Reset the pixels of the previous position
   for (unsigned int i = 0; i < BallSize; i++) {
     for (unsigned int j = 0; j < BallSize; j++) {
@@ -345,79 +344,144 @@ void update_ball_direction(HitType hit_t) {
   }
 }
 
-int checkBallBlockCollision(int index) {
-  // Ball center
-  int ball_center_x = ball.x_pos + 3; // 7px ball, center at +3
-  int ball_center_y = ball.y_pos + 3;
+// mode == 0 -> check for a corner hit
+// mode == 1 -> check for single or double block hit
+char verify_hit(int x, int y, char mode) {
+  char result = 0;
 
-  // Fetch the block directly from block_map using index
-  Block *block = &block_map[index];
-
-  // Block edges
-  int block_left = block->x_pos;
-  int block_right = block->x_pos + BlockSize;
-  int block_top = block->y_pos;
-  int block_bottom = block->y_pos + BlockSize;
-
-  // Check for collision with top of block
-  if (ball_center_y <= block_bottom && ball_center_y >= block_top &&
-      ball_center_x >= block_left && ball_center_x <= block_right) {
-    if (ball.direction == DiagonalUpRight || ball.direction == DiagonalUpLeft) {
-      // Ball is coming from below, so it hit the top of the block
-      if (ball.direction == DiagonalUpRight) {
-        ball.direction = DiagonalDownRight; // 45° → 135°
-      } else if (ball.direction == DiagonalUpLeft) {
-        ball.direction = DiagonalDownLeft; // 315° → 225°
-      }
-      return 1;
+  switch (mode) {
+  case 0:
+    if (x && y) {
+      result = 1; // Corner hit
     }
-  }
-  // Check for collision with right of block
-  if (ball_center_x <= block_right && ball_center_x >= block_left &&
-      ball_center_y >= block_top && ball_center_y <= block_bottom) {
-    if (ball.direction == HorizontalRight || ball.direction == DiagonalUpRight || ball.direction == DiagonalDownRight) {
-      // Ball hit the block from the right
-      if (ball.direction == HorizontalRight) {
-        ball.direction = HorizontalLeft; // 90° → 270°
-      } else if (ball.direction == DiagonalUpRight) {
-        ball.direction = DiagonalUpLeft; // 45° → 315°
-      } else if (ball.direction == DiagonalDownRight) {
-        ball.direction = DiagonalDownLeft; // 135° → 225°
-      }
-      return 1;
+    break;
+  case 1:
+    if (x && y) {
+      result = 1; // Single block hit
+    } else if (x || y) {
+      result = 2; // Double block hit
     }
-  }
-  // Check for collision with bottom of block
-  if (ball_center_y >= block_top && ball_center_y <= block_bottom &&
-      ball_center_x >= block_left && ball_center_x <= block_right) {
-    if (ball.direction == DiagonalDownRight || ball.direction == DiagonalDownLeft) {
-      // Ball hit the block from above
-      if (ball.direction == DiagonalDownRight) {
-        ball.direction = DiagonalUpRight; // 135° → 45°
-      } else if (ball.direction == DiagonalDownLeft) {
-        ball.direction = DiagonalUpLeft; // 225° → 315°
-      }
-      return 1;
-    }
-  }
-  // Check for collision with left of block
-  if (ball_center_x >= block_left && ball_center_x <= block_right &&
-      ball_center_y >= block_top && ball_center_y <= block_bottom) {
-    if (ball.direction == HorizontalLeft || ball.direction == DiagonalUpLeft || ball.direction == DiagonalDownLeft) {
-      // Ball hit the block from the left
-      if (ball.direction == HorizontalLeft) {
-        ball.direction = HorizontalRight; // 270° → 90°
-      } else if (ball.direction == DiagonalUpLeft) {
-        ball.direction = DiagonalUpRight; // 315° → 45°
-      } else if (ball.direction == DiagonalDownLeft) {
-        ball.direction = DiagonalDownRight; // 225° → 135°
-      }
-      return 1;
-    }
+    break;
   }
 
-  // Return 1 if a hit was detected, otherwise return 0
-  return 0;
+  return result;
+}
+
+char top_left_corner_hit(Block *block) {
+  char x_hit = 0;
+  char y_hit = 0;
+
+  if (ball.x_pos >= block->x_pos && ball.x_pos <= block->x_pos + BlockSize) {
+    x_hit = 1;
+  }
+  if (ball.y_pos <= block->y_pos + BlockSize && ball.y_pos >= block->y_pos) {
+    y_hit = 1;
+  }
+
+  char hit_flag = verify_hit(x_hit, y_hit, 0);
+
+  return hit_flag;
+}
+
+char top_right_corner_hit(Block *block) {
+  char x_hit = 0;
+  char y_hit = 0;
+
+  if (ball.x_pos + BallSize >= block->x_pos && ball.x_pos + BallSize <= block->x_pos + BlockSize) {
+    x_hit = 1;
+  }
+  if (ball.y_pos <= block->y_pos + BlockSize && ball.y_pos >= block->y_pos) {
+    y_hit = 1;
+  }
+
+  char hit_flag = verify_hit(x_hit, y_hit, 0);
+
+  return hit_flag;
+}
+
+char bottom_right_corner_hit(Block *block) {
+  char x_hit = 0;
+  char y_hit = 0;
+
+  if (ball.x_pos + BallSize >= block->x_pos && ball.x_pos + BallSize <= block->x_pos + BlockSize) {
+    x_hit = 1;
+  }
+  if (ball.y_pos + BallSize <= block->y_pos + BlockSize && ball.y_pos + BallSize >= block->y_pos) {
+    y_hit = 1;
+  }
+
+  char hit_flag = verify_hit(x_hit, y_hit, 0);
+
+  return hit_flag;
+}
+
+char bottom_left_corner_hit(Block *block) {
+  char x_hit = 0;
+  char y_hit = 0;
+
+  if (ball.x_pos >= block->x_pos && ball.x_pos <= block->x_pos + BlockSize) {
+    x_hit = 1;
+  }
+  if (ball.y_pos + BallSize <= block->y_pos + BlockSize && ball.y_pos + BallSize >= block->y_pos) {
+    y_hit = 1;
+  }
+
+  char hit_flag = verify_hit(x_hit, y_hit, 0);
+
+  return hit_flag;
+}
+
+char top_hit(Block *block) {
+  char top_left_hit = top_left_corner_hit(block);
+  char top_right_hit = top_right_corner_hit(block);
+
+  char hit_flag = verify_hit(top_left_hit, top_right_hit, 1);
+
+  return hit_flag;
+}
+
+char right_hit(Block *block) {
+  char top_right_hit = top_right_corner_hit(block);
+  char bottom_right_hit = bottom_right_corner_hit(block);
+
+  char hit_flag = verify_hit(top_right_hit, bottom_right_hit, 1);
+
+  return hit_flag;
+}
+
+char bottom_hit(Block *block) {
+  char bottom_left_hit = bottom_left_corner_hit(block);
+  char bottom_right_hit = bottom_right_corner_hit(block);
+
+  char hit_flag = verify_hit(bottom_left_hit, bottom_right_hit, 1);
+
+  return hit_flag;
+}
+
+char left_hit(Block *block) {
+  char top_right_hit = top_right_corner_hit(block);
+  char bottom_left_hit = bottom_left_corner_hit(block);
+
+  char hit_flag = verify_hit(top_right_hit, bottom_left_hit, 1);
+
+  return hit_flag;
+}
+
+char checkBlockCollision(Block *block) {
+  char hit_top = top_hit(block);
+  char hit_right = right_hit(block);
+  char hit_bottom = bottom_hit(block);
+  // char hit_left = left_hit(block);
+
+  if (hit_right) {
+    return RightHit;
+  } else if (hit_top) {
+    return TopHit;
+  } else if (hit_bottom) {
+    return BottomHit;
+  }
+
+  return NoHit;
 }
 
 void check_block_hit() {
@@ -426,12 +490,13 @@ void check_block_hit() {
       continue; // Skip destroyed blocks
     }
 
-    int hit = checkBallBlockCollision(i);
+    int hit = checkBlockCollision(&block_map[i]);
 
-    if (hit == 1) {
-      // Primary block was hit, mark it as destroyed
+    if (hit != 1) {
       block_map[i].destroyed = 1;
       block_map[i].color = white;
+
+      // TODO: Implement direction change
 
       return;
     }
