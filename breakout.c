@@ -438,8 +438,6 @@ char checkBlockCollision(Block *block) {
 }
 
 void check_block_hit() {
-  char preventDirectionCHange = FALSE;
-
   for (unsigned int i = 0; i < num_blocks; i++) {
     if (block_map[i].destroyed == 1) {
       continue; // Skip destroyed blocks
@@ -451,21 +449,23 @@ void check_block_hit() {
       block_map[i].destroyed = 1;
       block_map[i].color = white;
 
-      if (!preventDirectionCHange) {
-        update_ball_direction(hit);
-        preventDirectionCHange = TRUE;
-      }
+      update_ball_direction(hit);
     }
   }
 }
 
 void check_bar_hit() {
-  if (ball.y_pos + 4 < playerBar.y_pos + 15 && ball.y_pos >= playerBar.y_pos) {
-    ball.direction = DiagonalUpRight;
-  } else if (ball.y_pos + 4 < playerBar.y_pos + 30 && ball.y_pos >= playerBar.y_pos + 15) {
-    ball.direction = HorizontalRight;
-  } else if (ball.y_pos + 4 <= playerBar.y_pos + 45 && ball.y_pos >= playerBar.y_pos + 30) {
-    ball.direction = DiagonalDownRight;
+  for (int i = 0; i < BallSize; i++) {
+    if (ball.y_pos + i < playerBar.y_pos + 15 && ball.y_pos + i >= playerBar.y_pos) {
+      ball.direction = DiagonalUpRight;
+      return;
+    } else if (ball.y_pos + i < playerBar.y_pos + 30 && ball.y_pos + i >= playerBar.y_pos + 15) {
+      ball.direction = HorizontalRight;
+      return;
+    } else if (ball.y_pos + i <= playerBar.y_pos + 45 && ball.y_pos + i >= playerBar.y_pos + 30) {
+      ball.direction = DiagonalDownRight;
+      return;
+    }
   }
 }
 
@@ -479,7 +479,7 @@ void update_game_state() {
     return;
   }
 
-  if (ball.x_pos < 7) {
+  if (ball.x_pos < 6) {
     currentState = Lost;
     return;
   }
@@ -565,8 +565,10 @@ void play() {
 
   if (currentState == Won) {
     write(won);
+    write("\n");
   } else if (currentState == Lost) {
     write(lost);
+    write("\n");
   } else if (currentState == Exit) {
     return;
   }
@@ -580,7 +582,7 @@ void reset() {
     unsigned long long out = ReadUart();
     if (!(out & 0x8000)) {
       // not valid - abort reading
-      return;
+      continue;
     }
     remaining = (out & 0xFF0000) >> 4;
   } while (remaining > 0);
@@ -588,13 +590,17 @@ void reset() {
   ClearScreen();
 
   // Reset ball state
-  ball.x_pos, ball.x_pos_prev = 8;
-  ball.y_pos, ball.y_pos_prev = 117;
-  ball.direction = HorizontalRight;
+  ball.x_pos = 8;
+  ball.x_pos_prev = 8;
+  ball.y_pos = 117;
+  ball.y_pos_prev = 117;
+  ball.direction = HorizontalRight; // Assuming HorizontalRight is part of your direction enum
 
-  // Reset bar state
-  playerBar.x_pos, playerBar.x_pos_prev = 0;
-  playerBar.y_pos, playerBar.y_pos_prev = 98;
+  // Reset player bar state
+  playerBar.x_pos = 0;
+  playerBar.x_pos_prev = 0;
+  playerBar.y_pos = 98;
+  playerBar.y_pos_prev = 98;
 }
 
 void wait_for_start() {
@@ -660,12 +666,7 @@ void init_block_map() {
 int main(int argc, char *argv[]) {
   ClearScreen();
 
-  // HINT: This loop allows the user to restart the game after loosing/winning the previous game
   while (1) {
-
-    // DEBUG:
-    // currentState = Running;
-
     init_block_map();
     draw_playing_field();
     draw_ball();
