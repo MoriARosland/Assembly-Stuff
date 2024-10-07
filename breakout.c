@@ -367,104 +367,57 @@ char verify_hit(int x, int y, char mode) {
   return result;
 }
 
-char top_left_corner_hit(Block *block) {
+char corner_hit(Block *block, int ball_x_pos, int ball_y_pos) {
   char x_hit = 0;
   char y_hit = 0;
 
-  if (ball.x_pos >= block->x_pos && ball.x_pos <= block->x_pos + BlockSize) {
+  if (ball_x_pos >= block->x_pos && ball_x_pos <= block->x_pos + BlockSize) {
     x_hit = 1;
   }
-  if (ball.y_pos <= block->y_pos + BlockSize && ball.y_pos >= block->y_pos) {
+  if (ball_y_pos <= block->y_pos + BlockSize && ball_y_pos >= block->y_pos) {
     y_hit = 1;
   }
 
-  char hit_flag = verify_hit(x_hit, y_hit, 0);
+  return verify_hit(x_hit, y_hit, 0);
+}
 
-  return hit_flag;
+char top_left_corner_hit(Block *block) {
+  return corner_hit(block, ball.x_pos, ball.y_pos);
 }
 
 char top_right_corner_hit(Block *block) {
-  char x_hit = 0;
-  char y_hit = 0;
-
-  if (ball.x_pos + BallSize >= block->x_pos && ball.x_pos + BallSize <= block->x_pos + BlockSize) {
-    x_hit = 1;
-  }
-  if (ball.y_pos <= block->y_pos + BlockSize && ball.y_pos >= block->y_pos) {
-    y_hit = 1;
-  }
-
-  char hit_flag = verify_hit(x_hit, y_hit, 0);
-
-  return hit_flag;
+  return corner_hit(block, ball.x_pos + BallSize, ball.y_pos);
 }
 
 char bottom_right_corner_hit(Block *block) {
-  char x_hit = 0;
-  char y_hit = 0;
-
-  if (ball.x_pos + BallSize >= block->x_pos && ball.x_pos + BallSize <= block->x_pos + BlockSize) {
-    x_hit = 1;
-  }
-  if (ball.y_pos + BallSize <= block->y_pos + BlockSize && ball.y_pos + BallSize >= block->y_pos) {
-    y_hit = 1;
-  }
-
-  char hit_flag = verify_hit(x_hit, y_hit, 0);
-
-  return hit_flag;
+  return corner_hit(block, ball.x_pos + BallSize, ball.y_pos + BallSize);
 }
 
 char bottom_left_corner_hit(Block *block) {
-  char x_hit = 0;
-  char y_hit = 0;
+  return corner_hit(block, ball.x_pos, ball.y_pos + BallSize);
+}
 
-  if (ball.x_pos >= block->x_pos && ball.x_pos <= block->x_pos + BlockSize) {
-    x_hit = 1;
-  }
-  if (ball.y_pos + BallSize <= block->y_pos + BlockSize && ball.y_pos + BallSize >= block->y_pos) {
-    y_hit = 1;
-  }
+char side_hit(Block *block, int ball_x_pos_1, int ball_y_pos_1, int ball_x_pos_2, int ball_y_pos_2) {
+  char first_corner_hit = corner_hit(block, ball_x_pos_1, ball_y_pos_1);
+  char second_corner_hit = corner_hit(block, ball_x_pos_2, ball_y_pos_2);
 
-  char hit_flag = verify_hit(x_hit, y_hit, 0);
-
-  return hit_flag;
+  return verify_hit(first_corner_hit, second_corner_hit, 1);
 }
 
 char top_hit(Block *block) {
-  char top_left_hit = top_left_corner_hit(block);
-  char top_right_hit = top_right_corner_hit(block);
-
-  char hit_flag = verify_hit(top_left_hit, top_right_hit, 1);
-
-  return hit_flag;
+  return side_hit(block, ball.x_pos, ball.y_pos, ball.x_pos + BallSize, ball.y_pos);
 }
 
 char right_hit(Block *block) {
-  char top_right_hit = top_right_corner_hit(block);
-  char bottom_right_hit = bottom_right_corner_hit(block);
-
-  char hit_flag = verify_hit(top_right_hit, bottom_right_hit, 1);
-
-  return hit_flag;
+  return side_hit(block, ball.x_pos + BallSize, ball.y_pos, ball.x_pos + BallSize, ball.y_pos + BallSize);
 }
 
 char bottom_hit(Block *block) {
-  char bottom_left_hit = bottom_left_corner_hit(block);
-  char bottom_right_hit = bottom_right_corner_hit(block);
-
-  char hit_flag = verify_hit(bottom_left_hit, bottom_right_hit, 1);
-
-  return hit_flag;
+  return side_hit(block, ball.x_pos, ball.y_pos + BallSize, ball.x_pos + BallSize, ball.y_pos + BallSize);
 }
 
 char left_hit(Block *block) {
-  char top_right_hit = top_right_corner_hit(block);
-  char bottom_left_hit = bottom_left_corner_hit(block);
-
-  char hit_flag = verify_hit(top_right_hit, bottom_left_hit, 1);
-
-  return hit_flag;
+  return side_hit(block, ball.x_pos, ball.y_pos, ball.x_pos, ball.y_pos + BallSize);
 }
 
 char checkBlockCollision(Block *block) {
