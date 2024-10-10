@@ -55,9 +55,13 @@ typedef enum _direction {
   HorizontalLeft = 270,
   DiagonalUpLeft = 315,
   NotApplicable = 6,
-  VerticalDown = 0x73,
-  VerticalUp = 0x77,
 } Direction;
+
+typedef enum _command {
+  CmdMoveUp = 0x77,
+  CmdMoveDown = 0x73,
+  CmdExit = 0x0A
+} Command;
 
 typedef struct _block {
   unsigned char destroyed;
@@ -550,14 +554,14 @@ void update_bar_state() {
 
   unsigned char byte = word & 0xff;
 
-  if (byte == VerticalUp) {
+  if (byte == CmdMoveUp) {
     if (playerBar.y_pos < BAR_STEP) {
       playerBar.y_pos = 0;
     } else {
       playerBar.y_pos -= BAR_STEP;
     }
 
-  } else if (byte == VerticalDown) {
+  } else if (byte == CmdMoveDown) {
     unsigned int step_limit = height - BAR_HEIGHT - BAR_STEP;
 
     if (playerBar.y_pos > step_limit) {
@@ -565,6 +569,8 @@ void update_bar_state() {
     } else {
       playerBar.y_pos += BAR_STEP;
     }
+  } else if (byte == CmdExit) {
+    currentState = Exit;
   }
 
   // We don't need to check remanining bytes since the update function
@@ -657,7 +663,7 @@ void wait_for_start() {
 
     byte = word & 0xff;
 
-    if (byte == VerticalUp || byte == VerticalDown) {
+    if (byte == CmdMoveUp || byte == CmdMoveDown) {
       currentState = Running;
       return;
     }
