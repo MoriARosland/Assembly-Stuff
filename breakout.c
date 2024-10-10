@@ -352,27 +352,12 @@ void update_ball_direction(HitType hit_t) {
   }
 }
 
-// mode == 0 -> check for a corner hit
-// mode == 1 -> check for single or double block hit
-char verify_hit(int x, int y, char mode) {
-  char result = 0;
-
-  switch (mode) {
-  case 0:
-    if (x && y) {
-      result = 1; // Corner hit
-    }
-    break;
-  case 1:
-    if (x && y) {
-      result = 1; // Single block hit
-    } else if (x || y) {
-      result = 2; // Double block hit
-    }
-    break;
+char verify_hit(int x, int y) {
+  if (x && y) {
+    return 1; // Corner hit
   }
 
-  return result;
+  return 0;
 }
 
 char corner_hit(Block *block, int ball_x_pos, int ball_y_pos) {
@@ -386,7 +371,7 @@ char corner_hit(Block *block, int ball_x_pos, int ball_y_pos) {
     y_hit = 1;
   }
 
-  return verify_hit(x_hit, y_hit, 0);
+  return verify_hit(x_hit, y_hit);
 }
 
 char top_left_corner_hit(Block *block) {
@@ -405,11 +390,48 @@ char bottom_left_corner_hit(Block *block) {
   return corner_hit(block, ball.x_pos, ball.y_pos + BallSize);
 }
 
+char is_neighbor_hit(Block *block, int dx, int dy) {
+  int neighbor_x = block->x_pos + dx;
+  int neighbor_y = block->y_pos + dy;
+
+  // Loop through all blocks to find if any active block is at the neighbor position
+  for (unsigned int i = 0; i < num_blocks; i++) {
+    if (block_map[i].destroyed == 0 &&
+        block_map[i].x_pos == neighbor_x &&
+        block_map[i].y_pos == neighbor_y) {
+      return 1;
+    }
+  }
+  return 0; // No active neighbor hit
+}
+
 char side_hit(Block *block, int ball_x_pos_1, int ball_y_pos_1, int ball_x_pos_2, int ball_y_pos_2) {
   char first_corner_hit = corner_hit(block, ball_x_pos_1, ball_y_pos_1);
   char second_corner_hit = corner_hit(block, ball_x_pos_2, ball_y_pos_2);
 
-  return verify_hit(first_corner_hit, second_corner_hit, 1);
+  if (first_corner_hit && second_corner_hit) {
+    return 1;
+  }
+
+  // If only one corner hits, check the neighboring block
+  if (first_corner_hit ^ second_corner_hit) {
+    int dx = 0, dy = 0;
+    if (ball_y_pos_1 == ball.y_pos) {
+      // Top or bottom side hit
+      dy = (first_corner_hit) ? -BlockSize : BlockSize;
+    } else {
+      // Left or right side hit
+      dx = (first_corner_hit) ? -BlockSize : BlockSize;
+    }
+
+    // Check if a neighbor block is hit
+    if (is_neighbor_hit(block, dx, dy)) {
+      return 1; // Treat as a hit if a neighboring block is hit
+    }
+  }
+
+  // Fallback to original verification if no neighboring block is hit
+  return verify_hit(first_corner_hit, second_corner_hit);
 }
 
 char top_hit(Block *block) {
@@ -436,13 +458,11 @@ char checkBlockCollision(Block *block) {
 
   if (hit_right) {
     return RightHit;
-  } else if (hit_top) {
-    return TopHit;
   } else if (hit_left) {
     return LeftHit;
-  }
-
-  else if (hit_bottom) {
+  } else if (hit_top) {
+    return TopHit;
+  } else if (hit_bottom) {
     return BottomHit;
   }
 
@@ -450,6 +470,8 @@ char checkBlockCollision(Block *block) {
 }
 
 void check_block_hit() {
+  char allow_direction_change = TRUE;
+
   for (unsigned int i = 0; i < num_blocks; i++) {
     if (block_map[i].destroyed == 1) {
       continue; // Skip destroyed blocks
@@ -461,7 +483,10 @@ void check_block_hit() {
       block_map[i].destroyed = 1;
       block_map[i].color = white;
 
-      update_ball_direction(hit);
+      if (allow_direction_change) {
+        update_ball_direction(hit);
+        allow_direction_change = FALSE; // Only allow one direction change per cycle.
+      }
     }
   }
 }
