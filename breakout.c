@@ -19,6 +19,10 @@ const unsigned short width = 320;  // DON'T TOUCH THIS - keep the value as is
 char font8x8[128][8];              // DON'T TOUCH THIS - this is a forward declaration
 /**************************************************************************************************/
 
+#define MAX_COLS 18
+#define MAX_ROWS 15
+#define MAX_NUM_BLOCKS (MAX_COLS * MAX_ROWS)
+
 #define TRUE 1
 #define FALSE 0
 
@@ -82,14 +86,17 @@ typedef struct _movingObject {
 
 GameState currentState = Stopped;
 
-const unsigned short BlockSize = 15; // Size of a square block in px
-const unsigned short BallSize = 7;   // Size of a square ball in px
+Block block_map[MAX_NUM_BLOCKS] = {0};
+
+// Initial position of ball (x = gamebar.x + 1, y = height / 2 - ballheight / 2 )
+MovingObject ball = {8, 117, 8, 117, HorizontalRight};
+MovingObject playerBar = {0, 98, 0, 98, NotApplicable};
 
 unsigned int num_blocks;
+unsigned int earliest_hit;
 
-Block *block_map;
-MovingObject ball = {8, 117, 8, 117, HorizontalRight}; // Initial position of ball (x = gamebar.x + 1, y = height / 2 - ballheight / 2 )
-MovingObject playerBar = {0, 98, 0, 98, NotApplicable};
+const unsigned short BlockSize = 15; // Size of a square block in px
+const unsigned short BallSize = 7;   // Size of a square ball in px
 
 /***
  * Here follow the C declarations for our assembly functions
@@ -535,7 +542,7 @@ void update_game_state() {
     return;
   }
 
-  if (ball.x_pos >= 163) { // x = 164 earliset possible hit for n_cols = 10
+  if (ball.x_pos >= earliest_hit) { // x = 164 earliset possible hit for n_cols = 10
     check_block_hit();
   } else if (ball.x_pos <= 10) {
     check_bar_hit();
@@ -663,6 +670,11 @@ void wait_for_start() {
 
     byte = word & 0xff;
 
+    if (byte == CmdExit) {
+      currentState = Exit;
+      return;
+    }
+
     if (byte == CmdMoveUp || byte == CmdMoveDown) {
       currentState = Running;
       return;
@@ -672,7 +684,6 @@ void wait_for_start() {
 
 void init_block_map() {
   num_blocks = n_cols * (height / BlockSize);
-  block_map = (Block *)malloc(num_blocks * sizeof(Block));
 
   unsigned int x_pos = width - n_cols * BlockSize; // Horizontal starting position of the playing field
   unsigned int y_pos = 0;
@@ -709,6 +720,15 @@ void init_block_map() {
 int main(int argc, char *argv[]) {
   ClearScreen();
 
+  if (n_cols > 18 || n_cols < 1) {
+    write("n_cols outside 1-18 is not allowed\n");
+    write("Exiting Game...\n");
+
+    return 1;
+  }
+
+  earliest_hit = width - n_cols * BlockSize - BallSize;
+
   while (1) {
     init_block_map();
     draw_playing_field();
@@ -719,6 +739,7 @@ int main(int argc, char *argv[]) {
     play();
     reset();
     if (currentState == Exit) {
+      write("Exiting Game...\n");
       break;
     }
   }
