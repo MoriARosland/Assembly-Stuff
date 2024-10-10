@@ -43,6 +43,7 @@ typedef enum _hitType {
   NoHit = 0,
   TopHit,
   RightHit,
+  LeftHit,
   BottomHit
 } HitType;
 
@@ -330,6 +331,13 @@ void update_ball_direction(HitType hit_t) {
     }
     break;
 
+  case LeftHit:
+    if (ball.direction == DiagonalUpLeft) {
+      ball.direction = DiagonalUpRight;
+    } else if (ball.direction == DiagonalDownRight) {
+      ball.direction = DiagonalDownLeft;
+    }
+
   case BottomHit:
     if (ball.direction == DiagonalDownRight) {
       ball.direction = DiagonalUpRight;
@@ -424,13 +432,17 @@ char checkBlockCollision(Block *block) {
   char hit_top = top_hit(block);
   char hit_right = right_hit(block);
   char hit_bottom = bottom_hit(block);
-  // char hit_left = left_hit(block);
+  char hit_left = left_hit(block);
 
   if (hit_right) {
     return RightHit;
   } else if (hit_top) {
     return TopHit;
-  } else if (hit_bottom) {
+  } else if (hit_left) {
+    return LeftHit;
+  }
+
+  else if (hit_bottom) {
     return BottomHit;
   }
 
