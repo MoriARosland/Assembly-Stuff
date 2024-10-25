@@ -76,7 +76,7 @@ gameConfig game = {
     .initNextGameTick = 50,
 };
 
-pixelColor *pixelBuffer;
+pixelColor *pixelBuffer; // Color information for all 64 pixels
 
 bool check_framebuffer_id(int file_descriptor) {
   bool isValid = false;
@@ -106,9 +106,6 @@ void clear_pixel_grid() {
   }
 }
 
-// This function is called on the start of your application
-// Here you can initialize what ever you need for your task
-// return false if something fails, else true
 bool initializeSenseHat() {
 
   int file_descriptor = open(FRAME_BUFFER_PATH, O_RDWR);
@@ -131,7 +128,6 @@ bool initializeSenseHat() {
     return false;
   }
 
-  // Clear the screen by setting all pixels to zero
   clear_pixel_grid();
 
   close(file_descriptor);
