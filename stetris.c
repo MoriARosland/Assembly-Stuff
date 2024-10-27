@@ -163,7 +163,7 @@ void freeSenseHat() {
 int readSenseHatJoystick(int joystick_fd) {
   struct pollfd poll_descriptor = {
       .fd = joystick_fd,
-      .events = EV_KEY,
+      .events = POLLIN,
   };
 
   int poll_res = poll(&poll_descriptor, 1, 0);
@@ -186,10 +186,16 @@ int readSenseHatJoystick(int joystick_fd) {
   for (int i = 0; i < num_read_bytes / sizeof(struct input_event); i++) {
     struct input_event joystick_ev = joystick_events[i];
 
-    if (joystick_ev.type == EV_KEY) {
-      key_stroke = joystick_ev.code;
+    // Skip iteration if event is not of type EV_KEY and the value is not 1 or 2 (keypress and autorepeat)
+    if (joystick_ev.type != EV_KEY) {
       break;
     }
+    if (joystick_ev.value < 1) {
+      break;
+    }
+
+    key_stroke = joystick_ev.code;
+    break;
   }
 
   if (key_stroke == KEY_UP) {
@@ -222,7 +228,7 @@ void renderSenseHatMatrix(bool const playfieldChanged) {
     for (int col = 0; col < 8; col++) {
       int index = row * 8 + col;
 
-      if (game.playfield[col][row].occupied == false) {
+      if (game.playfield[row][col].occupied == false) {
         pixelBuffer[index] = COLOR_BLACK;
       } else {
         pixelBuffer[index] = COLOR_PURPLE;
@@ -578,7 +584,7 @@ int main(int argc, char **argv) {
       break;
 
     bool playfieldChanged = sTetris(key);
-    renderConsole(playfieldChanged);
+    // renderConsole(playfieldChanged);
     renderSenseHatMatrix(playfieldChanged);
 
     // Wait for next tick
