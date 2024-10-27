@@ -26,16 +26,43 @@
 
 #define JOYSTICK_INPUT_PATH "/dev/input/event0"
 
+#define COLOR_MODE_RANDOM 0
+#define COLOR_MODE_PRESET 1
+
+// Util for generating a random number within rage
+#define RANDOM_IN_RANGE(min, max) (rand() % ((max) + 1 - (min)) + (min))
+#define COLOR_6_BIT_MAX ((1 << 6) - 1) // 2^6 - 1
+#define COLOR_5_BIT_MAX ((1 << 5) - 1) // 2^5 - 1
+#define COLOR_MIN_VAL 0
+
+// Color presents. Choose color mode in the generate_color() function.
 #define COLOR_BLACK \
   (pixelColor) { .red = 0, .green = 0, .blue = 0 }
+#define COLOR_RED \
+  (pixelColor) { .red = 31, .green = 0, .blue = 0 } // Max red (5 bits)
+#define COLOR_BLUE \
+  (pixelColor) { .red = 0, .green = 0, .blue = 31 } // Max blue (5 bits)
+#define COLOR_GREEN \
+  (pixelColor) { .red = 0, .green = 63, .blue = 0 } // Max green (6 bits)
 #define COLOR_PURPLE \
-  (pixelColor) { .red = 31, .green = 0, .blue = 31 }
+  (pixelColor) { .red = 31, .green = 0, .blue = 31 } // Combination of red and blue
+#define COLOR_YELLOW \
+  (pixelColor) { .red = 31, .green = 63, .blue = 0 } // Combination of red and green
+#define COLOR_ORANGE \
+  (pixelColor) { .red = 31, .green = 31, .blue = 0 } // Mostly red with some green
+
+typedef struct _rgb565 {
+  uint16_t blue : 5;
+  uint16_t green : 6;
+  uint16_t red : 5;
+} pixelColor;
 
 // If you extend this structure, either avoid pointers or adjust
 // the game logic allocate/deallocate and reset the memory
 typedef struct
 {
   bool occupied;
+  pixelColor color;
 } tile;
 
 typedef struct
@@ -43,12 +70,6 @@ typedef struct
   unsigned int x;
   unsigned int y;
 } coord;
-
-typedef struct _rgb565 {
-  uint16_t blue : 5;
-  uint16_t green : 6;
-  uint16_t red : 5;
-} pixelColor;
 
 typedef struct
 {
@@ -150,6 +171,40 @@ bool initializeSenseHat() {
   return true;
 }
 
+pixelColor select_preset_color() {
+  const pixelColor presets[] = {
+      COLOR_BLUE, COLOR_RED, COLOR_GREEN, COLOR_ORANGE, COLOR_PURPLE, COLOR_YELLOW};
+
+  int num = RANDOM_IN_RANGE(0, 5); // Random index of "presets" 0 to 5
+
+  return presets[num];
+}
+
+/**
+ * Generates a random RGB565 color.
+ *
+ * Modes:
+ * 0 - Random
+ * 1 - Preset
+ */
+
+pixelColor generate_color(int generation_mode) {
+  switch (generation_mode) {
+  case COLOR_MODE_RANDOM:
+    return (pixelColor){
+        .red = RANDOM_IN_RANGE(COLOR_MIN_VAL, COLOR_5_BIT_MAX),
+        .green = RANDOM_IN_RANGE(COLOR_MIN_VAL, COLOR_6_BIT_MAX),
+        .blue = RANDOM_IN_RANGE(COLOR_MIN_VAL, COLOR_5_BIT_MAX),
+    };
+
+  case COLOR_MODE_PRESET:
+    return select_preset_color();
+
+  default:
+    return COLOR_BLACK;
+  }
+}
+
 // This function is called when the application exits
 // Here you can free up everything that you might have opened/allocated
 void freeSenseHat() {
@@ -225,11 +280,13 @@ void renderSenseHatMatrix(bool const playfieldChanged) {
     for (int col = 0; col < 8; col++) {
       int index = row * 8 + col;
 
-      if (game.playfield[row][col].occupied == false) {
-        pixelBuffer[index] = COLOR_BLACK;
-      } else {
-        pixelBuffer[index] = COLOR_PURPLE;
-      }
+      pixelBuffer[index] = game.playfield[row][col].color;
+
+      // if (game.playfield[row][col].occupied == false) {
+      //   pixelBuffer[index] = COLOR_BLACK;
+      // } else {
+      //   pixelBuffer[index] = COLOR_PURPLE;
+      // }
     }
   }
 }
@@ -249,6 +306,10 @@ bool enableJoyStickEvents(int *joystick_fd) {
 
 static inline void newTile(coord const target) {
   game.playfield[target.y][target.x].occupied = true;
+
+  // Choose one of the two generation modes:
+  game.playfield[target.y][target.x].color = generate_color(COLOR_MODE_PRESET);
+  // game.playfield[target.y][target.x].color = generate_color(COLOR_MODE_RANDOM);
 }
 
 static inline void copyTile(coord const to, coord const from) {
