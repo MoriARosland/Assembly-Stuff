@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "*.css": "tailwindcss",
+        "fcntl.h": "c",
+        "ioctl.h": "c",
+        "ioctl-types.h": "c",
+        "ioctls.h": "c",
+        "features.h": "c"
+    }
+}

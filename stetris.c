@@ -19,8 +19,12 @@
 #define ROW_CLEAR (1 << 1)
 #define TILE_ADDED (1 << 2)
 
+#define NUM_PIXELS 64
+
 #define FRAME_BUFFER_PATH "/dev/fb0"
 #define FRAME_BUFFER_SIZE 128 // 64 pixels * 2 bytes
+
+#define JOYSTICK_INPUT_PATH "/dev/input/event0"
 
 #define COLOR_BLACK \
   (pixelColor) { .red = 0, .green = 0, .blue = 0 }
@@ -106,8 +110,20 @@ void clear_pixel_grid() {
   }
 }
 
-bool initializeSenseHat() {
+bool check_input_device_name(int joy_fd) {
+  bool isValid = false;
 
+  char name[256] = "Unknown";
+  if (ioctl(joy_fd, EVIOCGNAME(sizeof(name)), name) < 0) {
+    perror("Failed to get device name");
+  } else {
+    printf("Input device name: %s\n", name);
+  }
+
+  return false;
+}
+
+bool initializeSenseHat() {
   int file_descriptor = open(FRAME_BUFFER_PATH, O_RDWR);
   if (file_descriptor == -1) {
     fprintf(stderr, "ERROR while initializing Sense Hat: \n\t");
@@ -131,6 +147,21 @@ bool initializeSenseHat() {
   clear_pixel_grid();
 
   close(file_descriptor);
+
+  // verify input device
+  int joy_fd = open(JOYSTICK_INPUT_PATH, O_RDONLY);
+  if (joy_fd == -1) {
+    fprintf(stderr, "ERROR while initializing joystick: \n\t");
+    perror("Failed to open input device");
+  }
+
+  bool joy_valid = check_input_device_name(joy_fd);
+  if (!joy_valid) {
+    close(joy_fd);
+    return false;
+  }
+  close(joy_fd);
+
   return true;
 }
 
@@ -152,7 +183,20 @@ int readSenseHatJoystick() {
 // every game tick. The parameter playfieldChanged signals whether the game logic
 // has changed the playfield
 void renderSenseHatMatrix(bool const playfieldChanged) {
-  (void)playfieldChanged;
+  if (!playfieldChanged)
+    return;
+
+  for (int row = 0; row < 8; row++) {
+    for (int col = 0; col < 8; col++) {
+      int index = row * 8 + col;
+
+      if (game.playfield[col][row].occupied == false) {
+        pixelBuffer[index] = COLOR_BLACK;
+      } else {
+        pixelBuffer[index] = COLOR_PURPLE;
+      }
+    }
+  }
 }
 
 // The game logic uses only the following functions to interact with the playfield.
@@ -436,13 +480,13 @@ int main(int argc, char **argv) {
   // This sets the stdin in a special state where each
   // keyboard press is directly flushed to the stdin and additionally
   // not outputted to the stdout
-  {
-    struct termios ttystate;
-    tcgetattr(STDIN_FILENO, &ttystate);
-    // ttystate.c_lflag &= ~(ICANON | ECHO); // UNCOMMENT AFTER DEBUG
-    ttystate.c_cc[VMIN] = 1;
-    tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
-  }
+  // {
+  //   struct termios ttystate;
+  //   tcgetattr(STDIN_FILENO, &ttystate);
+  //   ttystate.c_lflag &= ~(ICANON | ECHO);
+  //   ttystate.c_cc[VMIN] = 1;
+  //   tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
+  // }
 
   // Allocate the playing field structure
   game.rawPlayfield = (tile *)malloc(game.grid.x * game.grid.y * sizeof(tile));
@@ -466,8 +510,8 @@ int main(int argc, char **argv) {
   };
 
   // Clear console, render first time
-  fprintf(stdout, "\033[H\033[J");
-  renderConsole(true);
+  // fprintf(stdout, "\033[H\033[J");
+  // renderConsole(true);
   renderSenseHatMatrix(true);
 
   while (true) {
