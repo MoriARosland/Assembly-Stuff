@@ -160,7 +160,54 @@ void freeSenseHat() {
 // KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, with the respective direction
 // and KEY_ENTER, when the the joystick is pressed
 // !!! when nothing was pressed you MUST return 0 !!!
-int readSenseHatJoystick() {
+int readSenseHatJoystick(int joystick_fd) {
+  struct pollfd poll_descriptor = {
+      .fd = joystick_fd,
+      .events = EV_KEY,
+  };
+
+  int poll_res = poll(&poll_descriptor, 1, 0);
+  if (poll_res <= 0) {
+    // printf("TIMEOUT: %i\n", poll_res);
+    return 0;
+  }
+
+  struct input_event joystick_events[32];
+  int num_read_bytes = read(joystick_fd, joystick_events, sizeof(struct input_event) * 32);
+
+  if (num_read_bytes < (int)sizeof(struct input_event)) {
+    // We've not read a full event. Return.
+    return 0;
+  }
+
+  // Loop through events
+  int key_stroke = 0;
+
+  for (int i = 0; i < num_read_bytes / sizeof(struct input_event); i++) {
+    struct input_event joystick_ev = joystick_events[i];
+
+    if (joystick_ev.type == EV_KEY) {
+      key_stroke = joystick_ev.code;
+      break;
+    }
+  }
+
+  if (key_stroke == KEY_UP) {
+    return KEY_UP;
+  }
+  if (key_stroke == KEY_DOWN) {
+    return KEY_DOWN;
+  }
+  if (key_stroke == KEY_LEFT) {
+    return KEY_LEFT;
+  }
+  if (key_stroke == KEY_RIGHT) {
+    return KEY_RIGHT;
+  }
+  if (key_stroke == KEY_ENTER) {
+    return KEY_ENTER;
+  }
+
   return 0;
 }
 
@@ -182,6 +229,15 @@ void renderSenseHatMatrix(bool const playfieldChanged) {
       }
     }
   }
+}
+
+bool enableJoyStickEvents(int *joystick_fd) {
+  *joystick_fd = open(JOYSTICK_INPUT_PATH, O_RDONLY);
+  if (*joystick_fd == -1) {
+    return false; // failed
+  }
+
+  return true; // success
 }
 
 // The game logic uses only the following functions to interact with the playfield.
@@ -499,11 +555,18 @@ int main(int argc, char **argv) {
   // renderConsole(true);
   renderSenseHatMatrix(true);
 
+  int joystick_fd;
+  bool success = enableJoyStickEvents(&joystick_fd);
+  if (!success) {
+    fprintf(stderr, "ERROR: Failed to open joystick file descriptor\n");
+    return 1;
+  }
+
   while (true) {
     struct timeval sTv, eTv;
     gettimeofday(&sTv, NULL);
 
-    int key = readSenseHatJoystick();
+    int key = readSenseHatJoystick(joystick_fd);
     if (!key) {
       // NOTE: Uncomment the next line if you want to test your implementation with
       // reading the inputs from stdin. However, we expect you to read the inputs directly
@@ -526,6 +589,8 @@ int main(int argc, char **argv) {
     }
     game.tick = (game.tick + 1) % game.nextGameTick;
   }
+
+  close(joystick_fd);
 
   freeSenseHat();
   free(game.playfield);
