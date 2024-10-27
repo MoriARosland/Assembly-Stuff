@@ -198,17 +198,14 @@ int readSenseHatJoystick(int joystick_fd) {
     break;
   }
 
-  if (key_stroke == KEY_UP) {
-    return KEY_UP;
-  }
-  if (key_stroke == KEY_DOWN) {
-    return KEY_DOWN;
-  }
   if (key_stroke == KEY_LEFT) {
     return KEY_LEFT;
   }
   if (key_stroke == KEY_RIGHT) {
     return KEY_RIGHT;
+  }
+  if (key_stroke == KEY_DOWN) {
+    return KEY_DOWN;
   }
   if (key_stroke == KEY_ENTER) {
     return KEY_ENTER;
