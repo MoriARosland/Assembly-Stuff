@@ -527,13 +527,13 @@ int main(int argc, char **argv) {
   // This sets the stdin in a special state where each
   // keyboard press is directly flushed to the stdin and additionally
   // not outputted to the stdout
-  // {
-  //   struct termios ttystate;
-  //   tcgetattr(STDIN_FILENO, &ttystate);
-  //   ttystate.c_lflag &= ~(ICANON | ECHO);
-  //   ttystate.c_cc[VMIN] = 1;
-  //   tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
-  // }
+  {
+    struct termios ttystate;
+    tcgetattr(STDIN_FILENO, &ttystate);
+    ttystate.c_lflag &= ~(ICANON | ECHO);
+    ttystate.c_cc[VMIN] = 1;
+    tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
+  }
 
   // Allocate the playing field structure
   game.rawPlayfield = (tile *)malloc(game.grid.x * game.grid.y * sizeof(tile));
@@ -557,8 +557,8 @@ int main(int argc, char **argv) {
   };
 
   // Clear console, render first time
-  // fprintf(stdout, "\033[H\033[J");
-  // renderConsole(true);
+  fprintf(stdout, "\033[H\033[J");
+  renderConsole(true);
   renderSenseHatMatrix(true);
 
   int joystick_fd;
@@ -584,7 +584,7 @@ int main(int argc, char **argv) {
       break;
 
     bool playfieldChanged = sTetris(key);
-    // renderConsole(playfieldChanged);
+    renderConsole(playfieldChanged);
     renderSenseHatMatrix(playfieldChanged);
 
     // Wait for next tick
