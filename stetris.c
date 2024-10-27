@@ -82,57 +82,47 @@ gameConfig game = {
 
 pixelColor *pixelBuffer; // Color information for all 64 pixels
 
-bool check_framebuffer_id(int file_descriptor) {
-  bool isValid = false;
-
+bool checkFramebufferId(int fd) {
   struct fb_fix_screeninfo fb_info;
-  int fb_query_result = ioctl(file_descriptor, FBIOGET_FSCREENINFO, &fb_info);
-
-  if (fb_query_result != 0) {
-    fprintf(stderr, "ERROR while initializing Sense Hat: \n\t");
+  if (ioctl(fd, FBIOGET_FSCREENINFO, &fb_info) != 0) {
     perror("Failed to read fixed screen-information from framebuffer");
     return false;
   }
 
   if (strcmp(fb_info.id, "RPi-Sense FB") != 0) {
-    fprintf(stderr, "EXCEPTION: Framebuffer ID does not match \"RPi-Sense FB\"\n\t");
-    fprintf(stderr, "ID found: %s\n", fb_info.id);
-
+    fprintf(stderr, "EXCEPTION: Framebuffer ID mismatch. Found: %s\n", fb_info.id);
     return false;
   }
 
   return true;
 }
 
-void clear_pixel_grid() {
+void clearPixelGrid() {
   for (uint8_t i = 0; i < FRAME_BUFFER_SIZE; i++) {
     pixelBuffer[i] = COLOR_BLACK;
   }
 }
 
-bool check_input_device_name(int joy_fd) {
-  bool isValid = false;
-
-  char name[256] = "Unknown";
-  if (ioctl(joy_fd, EVIOCGNAME(sizeof(name)), name) < 0) {
+bool checkInputDeviceName(int joy_fd) {
+  char device_name[256] = "Unknown";
+  if (ioctl(joy_fd, EVIOCGNAME(sizeof(device_name)), device_name) < 0) {
     perror("Failed to get device name");
-  } else {
-    printf("Input device name: %s\n", name);
-  }
-
-  return false;
-}
-
-bool initializeSenseHat() {
-  int file_descriptor = open(FRAME_BUFFER_PATH, O_RDWR);
-  if (file_descriptor == -1) {
-    fprintf(stderr, "ERROR while initializing Sense Hat: \n\t");
-    perror("Failed to open frame buffer");
     return false;
   }
 
-  bool valid_id = check_framebuffer_id(file_descriptor);
-  if (!valid_id) {
+  if (strcmp(device_name, "Raspberry Pi Sense HAT Joystick") != 0) {
+    fprintf(stderr, "EXCEPTION: Input device ID mismatch. Found: %s\n", device_name);
+    return false;
+  }
+
+  return true;
+}
+
+bool initializeSenseHat() {
+  // Initialize framebuffer
+  int file_descriptor = open(FRAME_BUFFER_PATH, O_RDWR);
+  if (file_descriptor == -1 || !checkFramebufferId(file_descriptor)) {
+    perror("Framebuffer initialization failed");
     return false;
   }
 
@@ -144,22 +134,17 @@ bool initializeSenseHat() {
     return false;
   }
 
-  clear_pixel_grid();
-
   close(file_descriptor);
 
-  // verify input device
-  int joy_fd = open(JOYSTICK_INPUT_PATH, O_RDONLY);
-  if (joy_fd == -1) {
-    fprintf(stderr, "ERROR while initializing joystick: \n\t");
-    perror("Failed to open input device");
-  }
+  clearPixelGrid();
 
-  bool joy_valid = check_input_device_name(joy_fd);
-  if (!joy_valid) {
-    close(joy_fd);
+  // Verify joystick ID
+  int joy_fd = open(JOYSTICK_INPUT_PATH, O_RDONLY);
+  if (joy_fd == -1 || !checkInputDeviceName(joy_fd)) {
+    perror("Joystick initialization failed");
     return false;
   }
+
   close(joy_fd);
 
   return true;
