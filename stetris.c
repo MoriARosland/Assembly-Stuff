@@ -39,17 +39,17 @@
 #define COLOR_BLACK \
   (pixelColor) { .red = 0, .green = 0, .blue = 0 }
 #define COLOR_RED \
-  (pixelColor) { .red = 31, .green = 0, .blue = 0 } // Max red (5 bits)
+  (pixelColor) { .red = 31, .green = 0, .blue = 0 }
 #define COLOR_BLUE \
-  (pixelColor) { .red = 0, .green = 0, .blue = 31 } // Max blue (5 bits)
+  (pixelColor) { .red = 0, .green = 0, .blue = 31 }
 #define COLOR_GREEN \
-  (pixelColor) { .red = 0, .green = 63, .blue = 0 } // Max green (6 bits)
+  (pixelColor) { .red = 0, .green = 63, .blue = 0 }
 #define COLOR_PURPLE \
-  (pixelColor) { .red = 31, .green = 0, .blue = 31 } // Combination of red and blue
+  (pixelColor) { .red = 31, .green = 0, .blue = 31 }
 #define COLOR_YELLOW \
-  (pixelColor) { .red = 31, .green = 63, .blue = 0 } // Combination of red and green
+  (pixelColor) { .red = 31, .green = 63, .blue = 0 }
 #define COLOR_ORANGE \
-  (pixelColor) { .red = 31, .green = 31, .blue = 0 } // Mostly red with some green
+  (pixelColor) { .red = 31, .green = 31, .blue = 0 }
 
 typedef struct _rgb565 {
   uint16_t blue : 5;
@@ -281,12 +281,6 @@ void renderSenseHatMatrix(bool const playfieldChanged) {
       int index = row * 8 + col;
 
       pixelBuffer[index] = game.playfield[row][col].color;
-
-      // if (game.playfield[row][col].occupied == false) {
-      //   pixelBuffer[index] = COLOR_BLACK;
-      // } else {
-      //   pixelBuffer[index] = COLOR_PURPLE;
-      // }
     }
   }
 }
